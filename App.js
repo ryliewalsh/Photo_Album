@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { getAuth, onAuthStateChanged } from "firebase/auth"; // Import Firebase Auth
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import ImageUploader from "./imageUpload";
 import LoginForm from "./login";
+import Header from "./header";
 
 export default function App() {
     const [user, setUser] = useState(null); // State for tracking user
@@ -20,12 +21,21 @@ export default function App() {
     }, []);
 
     if (loading) {
-        return <Text>Loading...</Text>; // Show loading text until Firebase state is ready
+        return (
+            <View style={styles.container}>
+                <Text>Loading...</Text>
+            </View>
+        );
+    }
+
+    if (!user) {
+        return <LoginForm />; // Show login form if no user is logged in
     }
 
     return (
         <View style={styles.container}>
-            {user ? <ImageUploader /> : <LoginForm />} {/* Show ImageUploader or LoginForm based on auth */}
+            <Header user={user} onLogout={() => setUser(null)} />
+            <ImageUploader /> {/* Always display ImageUploader below the header */}
         </View>
     );
 }
@@ -33,7 +43,7 @@ export default function App() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
+        justifyContent: "center",
+        alignItems: "center",
     },
 });
