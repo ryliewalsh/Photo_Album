@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Button, TextInput, StyleSheet, Alert } from 'react-native';
 import { getAuth, onAuthStateChanged, signOut, signInWithEmailAndPassword } from 'firebase/auth';
+import SignUp from "./signUp";
+
+
 
 export default function LoginForm() {
     const [user, setUser] = useState(null);
@@ -27,26 +30,7 @@ export default function LoginForm() {
         }
     };
 
-    const handleLogout = async () => {
-        try {
-            await signOut(auth);
-        } catch (error) {
-            Alert.alert("Logout Failed", error.message);
-        }
-    };
 
-    if (loading) {
-        return <Text>Loading...</Text>;
-    }
-
-    if (user) {
-        return (
-            <View style={styles.content}>
-                <Text>Welcome, {user.email}!</Text>
-                <Button title="Logout" onPress={handleLogout} />
-            </View>
-        );
-    }
 
     return (
         <View style={styles.content}>
@@ -65,6 +49,7 @@ export default function LoginForm() {
                 onChangeText={setPassword}
             />
             <Button title="Log In" onPress={handleLogin} />
+
         </View>
     );
 }
