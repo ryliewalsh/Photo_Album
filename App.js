@@ -3,7 +3,8 @@ import { View, Text, Button, StyleSheet } from "react-native";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import ImageUploader from "./imageUpload";
 import LoginForm from "./login";
-import Header from "./header";
+import Header from "./header"; // Import Header component
+
 import ImageCarousel from "./galleryView";
 
 export default function App() {
@@ -34,17 +35,10 @@ export default function App() {
         return <LoginForm />; // Show login form if no user is logged in
     }
 
-    const toggleMode = () => {
-        // Toggle between "display" and "upload" modes
-        setMode((prevMode) => (prevMode === "display" ? "upload" : "display"));
-    };
-
     return (
         <View style={styles.container}>
-            <Header user={user} onLogout={() => setUser(null)} />
-
-            {/* Mode toggle button */}
-            <Button title={`Switch to ${mode === "display" ? "Upload" : "Display"} Mode`} onPress={toggleMode} />
+            {/* Pass the user and setMode to Header */}
+            <Header user={user} onLogout={() => setUser(null)} setMode={setMode} mode={mode} />
 
             {/* Conditionally render content based on the current mode */}
             {mode === "display" ? (
@@ -55,18 +49,9 @@ export default function App() {
         </View>
     );
 }
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-    },
-    content: {
-        flexGrow: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        padding: 20,
-    },
-    text: {
-        fontSize: 18,
-        marginBottom: 20,
     },
 });
