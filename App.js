@@ -4,7 +4,7 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import ImageUploader from "./imageUpload";
 import LoginForm from "./login";
 import Header from "./header";
-import ImageFetcher from "./galleryView";
+import ImageCarousel from "./galleryView";
 
 export default function App() {
     const [user, setUser] = useState(null); // State for tracking user
@@ -48,21 +48,21 @@ export default function App() {
 
             {/* Conditionally render content based on the current mode */}
             {mode === "display" ? (
-                <ImageFetcher />
+                <ImageCarousel />
             ) : (
-                <ImageUploader /> // Upload mode: Show ImageUploader
+                <ImageUploader />
             )}
         </View>
     );
 }
 const styles = StyleSheet.create({
     container: {
-        flex: 1, // Take full screen
+        flex: 1,
     },
     content: {
-        flexGrow: 1, // Allow scrolling if content overflows
-        justifyContent: "center", // Center content vertically
-        alignItems: "center", // Center content horizontally
+        flexGrow: 1,
+        justifyContent: "center",
+        alignItems: "center",
         padding: 20,
     },
     text: {
