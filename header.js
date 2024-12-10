@@ -6,6 +6,7 @@ import { MaterialIcons } from "@expo/vector-icons"; // For hamburger menu icon
 export default function Header({ onLogout, user, setMode, mode }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false); // State to toggle menu visibility
     const [showDisplay, setDisplay] = useState(false);
+    const [menuTimeout, setMenuTimeout] = useState(null);
 
     const handleTouch = () => {
         setDisplay(true);
@@ -14,14 +15,17 @@ export default function Header({ onLogout, user, setMode, mode }) {
     const auth = getAuth();
 
     useEffect(() => {
-        if (showDisplay) {
+        if(showDisplay && isMenuOpen){
+            setDisplay(true)
+        }
+        if (!isMenuOpen) {
             const timer = setTimeout(() => {
                 setDisplay(false); // Set showDisplay back to false after 3 seconds
             }, 3000);
 
             return () => clearTimeout(timer); // Cleanup the timer on component unmount or when showDisplay changes
         }
-    }, [showDisplay]);
+    }, [showDisplay,isMenuOpen]);
     const handleLogout = async () => {
         try {
             await signOut(auth); // Log out the user
