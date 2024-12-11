@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { View, Image, StyleSheet, Text } from "react-native";
+import { View, Image, StyleSheet, Text , Dimensions} from "react-native";
 import { getStorage, ref, listAll, getDownloadURL } from "firebase/storage";
 import { storage } from "./firebase";
-
+const screen = Dimensions.get("window");
 export default function ImageCarousel() {
+
     const [imageURLs, setImageURLs] = useState([]);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -63,13 +64,16 @@ export default function ImageCarousel() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
+        width: screen.width,
+        height:screen.height,
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "black",
     },
     image: {
-        width: "100%",
-        height: "100%",
+        width: screen.width,
+        height:screen.height,
         resizeMode: "contain",
+
     },
 });
