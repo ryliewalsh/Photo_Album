@@ -21,6 +21,22 @@ export const pickImages = async () => {
     return [];
 };
 
+export const pickCrop = async () => {
+    // Open the image picker
+    const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        aspect: [2, 3],
+        quality: 1,
+        allowsEditing: true, // Allow selecting multiple images
+    });
+
+    if (!result.canceled && result.assets.length > 0) {
+        return result.assets.map((asset) => asset.uri);
+    }
+    console.log("Image picker canceled");
+    return [];
+};
+
 // Function to upload image to Firebase Storage
 export const uploadImage = async (uri) => {
     try {
@@ -56,6 +72,14 @@ export default function ImageUploader() {
         }
     };
 
+    const handlePickCrop = async () => {
+        const uris = await pickCrop();
+        if (uris.length > 0) {
+            setImages(uris);
+            await handleUploadImages(uris);
+        }
+    };
+
     const handleUploadImages = async (uris) => {
         try {
             setUploading(true);
@@ -80,6 +104,11 @@ export default function ImageUploader() {
             <Button
                 title="Pick and Upload Images"
                 onPress={handlePickImages}
+                disabled={uploading}
+            />
+            <Button
+                title="Crop and Upload"
+                onPress={handlePickCrop}
                 disabled={uploading}
             />
             {images.length > 0 && (
