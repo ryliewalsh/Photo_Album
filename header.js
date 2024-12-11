@@ -69,8 +69,10 @@ export default function Header({ onLogout, user, setMode, mode }) {
 const styles = StyleSheet.create({
     container: {
         width: "100%",
-        paddingTop: 100, // Adjust based on your app's layout
-        backgroundColor: "#6200ee",
+        paddingTop: "15%",
+        backgroundColor: "black",
+        zIndex: 1,
+
     },
     hamburgerButton: {
         padding: 10,
@@ -79,7 +81,7 @@ const styles = StyleSheet.create({
     },
     menu: {
         padding: 10,
-        backgroundColor: "#6200ee",
+        backgroundColor: "black",
     },
     title: {
         color: "#fff",

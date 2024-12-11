@@ -4,7 +4,7 @@ import { getAuth, onAuthStateChanged } from "firebase/auth";
 import ImageUploader from "./imageUpload";
 import LoginForm from "./login";
 import Header from "./header"; // Import Header component
-
+import ImageFetcher from "./galleryView";
 import ImageCarousel from "./galleryView";
 
 export default function App() {
