@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     },
     menu: {
         padding: 10,
-        backgroundColor: "black",
+        backgroundColor: "blue",
     },
     title: {
         color: "#fff",

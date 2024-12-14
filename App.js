@@ -42,7 +42,7 @@ export default function App() {
 
             {/* Conditionally render content based on the current mode */}
             {mode === "display" ? (
-                <ImageCarousel />
+                <ImageUploader/>
             ) : (
                 <ImageUploader />
             )}
