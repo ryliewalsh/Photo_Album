@@ -1,66 +1,50 @@
-import React, { useState } from "react";
-import { Button, Image, View, StyleSheet, Alert } from "react-native";
-import * as ImagePicker from "expo-image-picker";
-import { storage } from "./firebase"; // Import your Firebase setup
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import React, { useState, useEffect } from "react";
+import { View, Text, Button, StyleSheet } from "react-native";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+import ImageUploader from "./imageUpload";
+import LoginForm from "./login";
+import Header from "./header"; // Import Header component
+import ImageFetcher from "./galleryView";
+import ImageCarousel from "./galleryView";
 
 export default function App() {
-    const [image, setImage] = useState(null); // State for the selected image
-    const [uploading, setUploading] = useState(false);
+    const [user, setUser] = useState(null); // State for tracking user
+    const [loading, setLoading] = useState(true); // State for loading indicator
+    const [mode, setMode] = useState("display"); // State for tracking current mode ("display" or "upload")
 
-    const pickImage = async () => {
-        // Open the image picker
-        const result = await ImagePicker.launchImageLibraryAsync({
-            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [4, 3],
-            quality: 1,
+    const auth = getAuth();
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser); // Update user state if logged in
+            setLoading(false); // Hide loading spinner when auth state is known
         });
 
-        if (!result.canceled && result.assets.length > 0) {
-            const uri = result.assets[0].uri;
-            setImage(uri);
-            await uploadImage(uri);
-        }
-    };
+        return () => unsubscribe(); // Cleanup listener on component unmount
+    }, []);
 
-    const uploadImage = async (uri) => {
-        try {
-            setUploading(true);
-            const response = await fetch(uri);
-            const blob = await response.blob();
+    if (loading) {
+        return (
+            <View style={styles.container}>
+                <Text>Loading...</Text>
+            </View>
+        );
+    }
 
-            // Create a reference in Firebase Storage
-            const fileName = `images/${Date.now()}.jpg`;
-            const storageRef = ref(storage, fileName);
-
-            // Upload the file
-            const snapshot = await uploadBytes(storageRef, blob);
-
-            // Get the download URL
-            const downloadURL = await getDownloadURL(snapshot.ref);
-
-            Alert.alert("Upload Successful", `Image URL: ${downloadURL}`);
-        } catch (error) {
-            console.error("Upload failed:", error);
-            Alert.alert("Upload Failed", "An error occurred during the upload.");
-        } finally {
-            setUploading(false);
-        }
-    };
+    if (!user) {
+        return <LoginForm />; // Show login form if no user is logged in
+    }
 
     return (
         <View style={styles.container}>
-            <Button
-                title="Pick an Image"
-                onPress={pickImage}
-                disabled={uploading} // Disable button while uploading
-            />
-            {image && (
-                <Image
-                    source={{ uri: image }}
-                    style={styles.image}
-                />
+            {/* Pass the user and setMode to Header */}
+            <Header user={user} onLogout={() => setUser(null)} setMode={setMode} mode={mode} />
+
+            {/* Conditionally render content based on the current mode */}
+            {mode === "display" ? (
+                <ImageCarousel />
+            ) : (
+                <ImageUploader />
             )}
         </View>
     );
@@ -69,12 +53,5 @@ export default function App() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    image: {
-        width: 200,
-        height: 200,
-        marginTop: 20,
     },
 });
