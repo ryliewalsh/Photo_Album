@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { query, where, getDocs, updateDoc } from "firebase/firestore";
 import { Button, Image, View, StyleSheet, Alert, FlatList, Text, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
@@ -110,11 +111,12 @@ export default function ImageUploader({ userId }) {
     };
 
     // Function to handle sharing an image (to a user)
+
+
     const handleShareImage = async (imageUrl, sharedWithUserId) => {
         try {
-            // Update db to add user to sharedWith list
-            const imageRef = db.collection('images').where('url', '==', imageUrl);
-            const snapshot = await imageRef.get();
+            const imageQuery = query(collection(db, "images"), where("url", "==", imageUrl));
+            const snapshot = await getDocs(imageQuery);
 
             if (snapshot.empty) {
                 console.log("Image not found");
@@ -122,7 +124,7 @@ export default function ImageUploader({ userId }) {
             }
 
             const imageDoc = snapshot.docs[0];
-            await imageDoc.ref.update({
+            await updateDoc(imageDoc.ref, {
                 sharedWith: [...imageDoc.data().sharedWith, sharedWithUserId],
             });
 
@@ -132,6 +134,7 @@ export default function ImageUploader({ userId }) {
             Alert.alert("Sharing Failed", "An error occurred while sharing the image.");
         }
     };
+
 
     return (
         <View style={styles.container}>
