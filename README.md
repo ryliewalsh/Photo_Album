@@ -77,6 +77,7 @@
 ### **7. Documentation**
 - **User Guide**: Instructions for using the app
 - **Developer Documentation**: Explanation of code structure, API usage, and deployment process
+- Firebase Documentation : https://firebase.google.com/docs/firestore/manage-data/structure-data
 
 ---
 
