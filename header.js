@@ -47,7 +47,7 @@ export default function Header({ onLogout, user, setMode, mode }) {
     };
 
     if (showSettings) {
-        return  (<UserSettings setShowSettings={setShowSettings} />)pr; // Pass setShowSettings as a prop
+        return  (<UserSettings setShowSettings={setShowSettings} />); // Pass setShowSettings as a prop
     }
 
     return (
@@ -88,7 +88,7 @@ export default function Header({ onLogout, user, setMode, mode }) {
 const styles = StyleSheet.create({
     container: {
         width: "100%",
-        paddingTop: "10%",
+        paddingTop: "20%",
         backgroundColor: "black",
         zIndex: 1,
 

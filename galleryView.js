@@ -41,7 +41,7 @@ export default function ImageCarousel() {
 
                     return (prevIndex + 1) % imageURLs.length; // Loop back to the first image after the last
                 });
-            }, 10000); // Change image every 3 seconds
+            }, 1000); // Change image every 3 seconds
 
 
             return () => clearInterval(interval);
