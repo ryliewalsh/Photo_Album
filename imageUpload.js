@@ -1,10 +1,48 @@
-import React, { useState } from 'react';
-import {query, where, getDocs, updateDoc, collection, addDoc} from "firebase/firestore";
+import React, {useEffect, useState} from 'react';
+import {query, where, getDocs, updateDoc, collection, addDoc, doc} from "firebase/firestore";
 import { Button, Image, View, StyleSheet, Alert, FlatList, Text, ActivityIndicator } from 'react-native';
+import {Picker} from '@react-native-picker/picker';
 import * as ImagePicker from 'expo-image-picker';
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
 import { storage, db} from './firebase'; // Import db
 import * as ImageManipulator from 'expo-image-manipulator';
+
+
+const createDefaultAlbum = async (userId, setAlbums, setSelectedAlbum) => {
+    if (!userId) {
+        console.error("User ID is undefined or null");
+        return; // Exit early if userId is not available
+    }
+    try {
+
+        const albumRef = collection(db, "albums");
+        const q = query(albumRef, where("createdBy", "==", userId));
+        const albumSnapshot = await getDocs(q);
+
+        if (albumSnapshot.empty) {
+            // Create default album
+            const newAlbumRef = await addDoc(albumRef, {
+                name: "My Pics",
+                createdBy: userId,
+                images: [],
+                sharedWith: [],
+                timestamp: new Date(),
+            });
+
+            setSelectedAlbum(newAlbumRef.id); // Set as default album
+            setAlbums([{ id: newAlbumRef.id, name: "My Pics" }]);
+        } else {
+            const albumList = albumSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            setAlbums(albumList);
+            setSelectedAlbum(albumList[0].id);
+        }
+    } catch (error) {
+        console.error("Error creating default album:", error);
+    }
+};
 
 // Function to pick multiple images
 export const pickImages = async () => {
@@ -84,6 +122,9 @@ export default function ImageUploader({ userId }) {
     const [uploading, setUploading] = useState(false);
     const [uploadedUrls, setUploadedUrls] = useState([]);
     const [progress, setProgress] = useState(0); // Track upload progress
+    const [albums, setAlbums] = useState([]);
+    const [selectedAlbum, setSelectedAlbum] = useState(null);
+
 
     const handlePickImages = async () => {
         const uris = await pickImages();
@@ -138,10 +179,25 @@ export default function ImageUploader({ userId }) {
             Alert.alert("Sharing Failed", "An error occurred while sharing the image.");
         }
     };
-
+    useEffect(() => {
+        if (userId) {
+            const fetchData = async () => {
+                await createDefaultAlbum(userId, setAlbums, setSelectedAlbum); // Pass userId here
+            };
+            fetchData();
+        }
+    }, [userId]);
 
     return (
         <View style={styles.container}>
+            <Picker
+                selectedValue={selectedAlbum}
+                onValueChange={(albumId) => setSelectedAlbum(albumId)}
+            >
+                {albums.map((album) => (
+                    <Picker.Item key={album.id} label={album.name} value={album.id} />
+                ))}
+            </Picker>
             <Button
                 title="Pick and Upload Images"
                 onPress={handlePickImages}
@@ -215,4 +271,7 @@ const styles = StyleSheet.create({
         height: 100,
         margin: 5,
     },
+
+
+
 });
