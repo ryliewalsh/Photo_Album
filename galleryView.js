@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Image, StyleSheet, Text, Dimensions } from "react-native";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
-import { db } from "./firebase"; // Your Firebase configuration
+import { db, auth } from "./firebase"; // Your Firebase configuration
 import { collection, query, where, getDocs } from "firebase/firestore";
 
 const screen = Dimensions.get("window");
@@ -16,7 +16,7 @@ export default function ImageCarousel({ userId }) {
             try {
                 const imageQuery = query(
                     collection(db, "images"),
-                    where("sharedWith", "array-contains", userId)
+                    where("uploadedBy", "array-contains", userId)
                 );
                 const querySnapshot = await getDocs(imageQuery);
 

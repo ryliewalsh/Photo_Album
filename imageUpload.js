@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { query, where, getDocs, updateDoc } from "firebase/firestore";
+import {query, where, getDocs, updateDoc, collection, addDoc} from "firebase/firestore";
 import { Button, Image, View, StyleSheet, Alert, FlatList, Text, ActivityIndicator } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { getDownloadURL, ref, uploadBytesResumable } from 'firebase/storage';
-import { storage, db } from './firebase'; // Import db
+import { storage, db} from './firebase'; // Import db
 import * as ImageManipulator from 'expo-image-manipulator';
 
 // Function to pick multiple images
@@ -31,13 +31,15 @@ const resizeImage = async (uri) => {
     return resized.uri;
 };
 
-// Function to upload image to Firebase Storage with progress
+
+
 export const uploadImage = async (uri, setProgress, userId) => {
+    console.log(userId);
     try {
         const response = await fetch(uri);
         const blob = await response.blob();
 
-        const fileName = `images/${Date.now()}.jpg`;
+        const fileName = `images/${userId}.${Date.now()}.jpg`; // Store images under user ID
         const storageRef = ref(storage, fileName);
 
         // Upload with progress
@@ -59,21 +61,23 @@ export const uploadImage = async (uri, setProgress, userId) => {
         const snapshot = await uploadTask;
         const downloadURL = await getDownloadURL(snapshot.ref);
 
-        // Store image metadata in db (sharing information)
-        await db.collection('images').add({
+        // Store image metadata in Firestore
+        await addDoc(collection(db, "images"), {
             url: downloadURL,
             uploadedBy: userId,
-            sharedWith: [], // List of users who this image is shared with
+            albumId: null, // Albums can be added later
+            sharedWith: [], // Empty initially
             timestamp: new Date(),
         });
 
         return downloadURL;
     } catch (error) {
-        console.error("Upload failed:", error);
+        console.error("Upload failed: in UPload image outer", error);
         Alert.alert("Upload Failed", "An error occurred during the upload.");
         return null;
     }
 };
+
 
 export default function ImageUploader({ userId }) {
     const [images, setImages] = useState([]);
@@ -103,7 +107,7 @@ export default function ImageUploader({ userId }) {
             setUploadedUrls(urls);
             Alert.alert("Upload Successful", `Images uploaded successfully`);
         } catch (error) {
-            Alert.alert("Upload Failed", error.message);
+            Alert.alert("Upload Failed in handleUploadImages", error.message);
         } finally {
             setUploading(false);
             setProgress(0); // Reset progress after upload completes
