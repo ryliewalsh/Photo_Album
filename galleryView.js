@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Image, StyleSheet, Text, Dimensions } from "react-native";
 import { getStorage, ref, getDownloadURL } from "firebase/storage";
-import { db, auth, storage } from "./firebase"; // Your Firebase configuration
+import { db, auth, storage } from "./firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 
 const screen = Dimensions.get("window");
@@ -32,9 +32,10 @@ export default function ImageCarousel({ userId }) {
                 const urls = await Promise.all(
                     querySnapshot.docs.map(async (doc) => {
                         const imageData = doc.data();
-                        console.log("Image data:", imageData);
 
-                        const imagePath = imageData.storagePath;
+
+                        const imagePath = imageData.url;
+
                         if (!imagePath) {
                             console.error("storagePath is undefined for document ID:", doc.id);
                             return null;
@@ -96,11 +97,11 @@ const styles = StyleSheet.create({
         backgroundColor: "black",
     },
     image: {
-        width: screen.width * 0.9, // Avoid stretching to full screen
-        height: screen.height * 0.6, // Scale to fit screen better
+        width: screen.width * 0.9,
+        height: screen.height * 0.6,
         resizeMode: "contain",
         borderWidth: 1,
-        borderColor: "red", // Debugging: See if the image frame is rendered
+        borderColor: "red",
     },
     noImagesText: {
         color: "white",
