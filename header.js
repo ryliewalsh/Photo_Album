@@ -88,21 +88,21 @@ export default function Header({ onLogout, user, setMode, mode }) {
 const styles = StyleSheet.create({
     container: {
         width: "100%",
-        paddingTop: "10%",
+        paddingTop: "30%",
         backgroundColor: "black",
         zIndex: 1,
 
     },
     user_container: {
         width: "100%",
-        paddingTop: "10%",
+        paddingTop: "20%",
         backgroundColor: "black",
         zIndex: 1,
         flexDirection: "row",
 
     },
     hamburgerButton: {
-        padding: 10,
+        padding: 20,
         marginLeft: 10,
 
     },
@@ -112,7 +112,7 @@ const styles = StyleSheet.create({
 
     },
     menu: {
-        padding: 10,
+        padding: 20,
         backgroundColor: "blue",
     },
     title: {
