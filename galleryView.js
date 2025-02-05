@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { View, Image, StyleSheet, Text , Dimensions} from "react-native";
-import { getStorage, ref, listAll, getDownloadURL } from "firebase/storage";
-import { storage } from "./firebase";
-const screen = Dimensions.get("window");
-export default function ImageCarousel() {
+import { View, Image, StyleSheet, Text, Dimensions } from "react-native";
+import { getStorage, ref, getDownloadURL } from "firebase/storage";
+import { db, auth, storage } from "./firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
+const screen = Dimensions.get("window");
+
+export default function ImageCarousel({ userId }) {
     const [imageURLs, setImageURLs] = useState([]);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [loading, setLoading] = useState(true);
@@ -12,50 +14,75 @@ export default function ImageCarousel() {
     useEffect(() => {
         const fetchImages = async () => {
             try {
-                const imagesRef = ref(storage, "images/");
+                const imageQuery = query(
+                    collection(db, "images"),
+                    where("uploadedBy", "==", userId)
+                );
+                const querySnapshot = await getDocs(imageQuery);
 
-                // List all files in the 'images' folder
-                const result = await listAll(imagesRef);
+                if (querySnapshot.empty) {
+                    console.warn("No images found for user:", userId);
+                    setImageURLs([]);
+                    setLoading(false);
+                    return;
+                }
+
+                console.log("Fetched documents:", querySnapshot.docs.length);
+
                 const urls = await Promise.all(
-                    result.items.map(async (itemRef) => {
-                        const url = await getDownloadURL(itemRef);
-                        return url;
+                    querySnapshot.docs.map(async (doc) => {
+                        const imageData = doc.data();
+
+
+                        const imagePath = imageData.url;
+
+                        if (!imagePath) {
+                            console.error("storagePath is undefined for document ID:", doc.id);
+                            return null;
+                        }
+
+                        try {
+                            const storageRef = ref(storage, imagePath);
+                            return await getDownloadURL(storageRef);
+                        } catch (error) {
+                            console.error("Error fetching image URL:", error);
+                            return null;
+                        }
                     })
                 );
 
-                setImageURLs(urls);
+                setImageURLs(urls.filter(url => url !== null));
                 setLoading(false);
             } catch (error) {
-                console.error("Error fetching images: ", error);
+                console.error("Error fetching images from Firestore: ", error);
                 setLoading(false);
             }
         };
 
         fetchImages();
-    }, []);
+    }, [userId]);
 
     useEffect(() => {
         if (imageURLs.length > 0) {
             const interval = setInterval(() => {
-                setCurrentImageIndex((prevIndex) => {
 
-                    return (prevIndex + 1) % imageURLs.length; // Loop back to the first image after the last
-                });
-            }, 1000); // Change image every 3 seconds
-
+                setCurrentImageIndex((prevIndex) => (prevIndex + 1) % imageURLs.length);
+            }, 3000); // Change image every 3 seconds
 
             return () => clearInterval(interval);
         }
     }, [imageURLs]);
 
     if (loading) {
-        return <Text>Loading...</Text>;
+        return <Text style={styles.loadingText}>Loading...</Text>;
     }
 
     return (
         <View style={styles.container}>
-            {imageURLs.length > 0 && (
+            {imageURLs.length > 0 ? (
                 <Image source={{ uri: imageURLs[currentImageIndex] }} style={styles.image} />
+            ) : (
+                <Text style={styles.noImagesText}>No images shared with you.</Text>
             )}
         </View>
     );
@@ -65,15 +92,26 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         width: screen.width,
-        height:screen.height,
+        height: screen.height,
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "black",
     },
     image: {
-        width: screen.width,
-        height:screen.height,
+        width: screen.width * 0.9,
+        height: screen.height * 0.6,
         resizeMode: "contain",
-
+        borderWidth: 1,
+        borderColor: "red",
+    },
+    noImagesText: {
+        color: "white",
+        fontSize: 20,
+        textAlign: "center",
+        marginTop: 20,
+    },
+    loadingText: {
+        color: "white",
+        fontSize: 20,
     },
 });

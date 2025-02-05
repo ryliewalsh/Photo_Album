@@ -1,46 +1,118 @@
-import React, { useState } from "react";
-import {createUserWithEmailAndPassword, getAuth} from "firebase/auth";
+import React, { useState, useEffect } from 'react';
+import { View, Text, Button, TextInput, StyleSheet, Alert } from 'react-native';
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
-import { Alert, Button, TextInput, StyleSheet, View, Text } from "react-native";
+export default function AuthScreen() {
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [showSignUp, setShowSignUp] = useState(false); // Toggle between login and signup
 
-export default function SignUp() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [userName, setUserName] = useState('');
 
-    const signUpHandle = async () => {
-        // Log for debugging
-        console.log("Signing up with email:", email);
-        const auth = getAuth();
+    const auth = getAuth();
+    const db = getFirestore();
+
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+            setLoading(false);
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    const handleLogin = async () => {
         try {
-            // Create user with Firebase Authentication
+            await signInWithEmailAndPassword(auth, email, password);
+            Alert.alert("Login Successful", "You are now logged in!");
+        } catch (error) {
+            Alert.alert("Login Failed", error.message);
+        }
+    };
+
+    const handleSignUp = async () => {
+        try {
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-            console.log("User created:", userCredential); // Log user credential
+            const user = userCredential.user;
+
+            await setDoc(doc(db, 'users', user.uid), {
+                firstName,
+                lastName,
+                userName,
+                email,
+                albums: [],
+            });
+
             Alert.alert("Sign-Up Successful", "Your account has been created!");
         } catch (error) {
-            console.error("Sign-Up Error:", error.message); // Log error for debugging
             Alert.alert("Sign-Up Failed", error.message);
         }
     };
 
     return (
         <View style={styles.content}>
-            <Text style={styles.title}>Sign Up</Text>
-
-            <TextInput
-                style={styles.input}
-                placeholder="Email"
-                value={email}
-                onChangeText={setEmail}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Password"
-                secureTextEntry
-                value={password}
-                onChangeText={setPassword}
-            />
-
-            <Button title="Submit" onPress={signUpHandle} />
+            {showSignUp ? (
+                <>
+                    <Text style={styles.title}>Sign Up</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="First Name"
+                        value={firstName}
+                        onChangeText={setFirstName}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Last Name"
+                        value={lastName}
+                        onChangeText={setLastName}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Username"
+                        value={userName}
+                        onChangeText={setUserName}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Email"
+                        value={email}
+                        onChangeText={setEmail}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Password"
+                        secureTextEntry
+                        value={password}
+                        onChangeText={setPassword}
+                    />
+                    <Button title="Sign Up" onPress={handleSignUp} />
+                    <Button title="Go to Login" onPress={() => setShowSignUp(false)} />
+                </>
+            ) : (
+                <>
+                    <Text style={styles.title}>Login</Text>
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Email"
+                        value={email}
+                        onChangeText={setEmail}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Password"
+                        secureTextEntry
+                        value={password}
+                        onChangeText={setPassword}
+                    />
+                    <Button title="Log In" onPress={handleLogin} />
+                    <Button title="Go to Sign Up" onPress={() => setShowSignUp(true)} />
+                </>
+            )}
         </View>
     );
 }

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, Button, StyleSheet } from "react-native";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import ImageUploader from "./imageUpload";
-import LoginForm from "./login";
+import AuthScreen from "./signUp";
 import Header from "./header"; // Import Header component
 import ImageFetcher from "./galleryView";
 import ImageCarousel from "./galleryView";
@@ -32,7 +32,7 @@ export default function App() {
     }
 
     if (!user) {
-        return <LoginForm />; // Show login form if no user is logged in
+        return <AuthScreen />; // Show login form if no user is logged in
     }
 
     return (
@@ -42,9 +42,9 @@ export default function App() {
 
             {/* Conditionally render content based on the current mode */}
             {mode === "display" ? (
-                <ImageCarousel />
+                <ImageUploader userId={user?.uid}/>
             ) : (
-                <ImageUploader />
+                <ImageCarousel userId={user?.uid}/>
             )}
         </View>
     );
