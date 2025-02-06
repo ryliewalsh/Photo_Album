@@ -187,9 +187,10 @@ export default function ImageUploader({ userId }) {
             fetchData();
         }
     }, [userId]);
-
+    console.log(albums)
     return (
         <View style={styles.container}>
+
             <Picker
                 selectedValue={selectedAlbum}
                 onValueChange={(albumId) => setSelectedAlbum(albumId)}
