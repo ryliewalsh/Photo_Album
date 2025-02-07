@@ -234,11 +234,23 @@ export default function ImageUploader({ userId }) {
     useEffect(() => {
         if (userId) {
             const fetchData = async () => {
-                await createAlbum(userId, setAlbums, setSelectedAlbum);
+                const albumRef = collection(db, "albums");
+                const q = query(albumRef, where("createdBy", "==", userId));
+                const albumSnapshot = await getDocs(q);
+                const userAlbums = albumSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                setAlbums(userAlbums);
+
+                if (userAlbums.length === 0) {
+                    await createAlbum(userId, setAlbums, setSelectedAlbum);
+                } else {
+                    setSelectedAlbum(userAlbums[0].id);
+                }
             };
             fetchData();
         }
     }, [userId]);
+
 
     return (
         <View style={styles.container}>

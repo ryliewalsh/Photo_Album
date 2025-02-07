@@ -32,7 +32,7 @@ export default function AuthScreen() {
     const handleLogin = async () => {
         try {
             await signInWithEmailAndPassword(auth, email, password);
-            Alert.alert("Login Successful", "You are now logged in!");
+
         } catch (error) {
             Alert.alert("Login Failed", error.message);
         }
@@ -121,6 +121,7 @@ const styles = StyleSheet.create({
         flex: 1,
         alignItems: 'center',
         padding: 10,
+        backgroundColor: "#f4f4f4",
 
     },
     input: {
@@ -131,6 +132,7 @@ const styles = StyleSheet.create({
         width: screenWidth * 0.8,
         maxWidth: 300,
         paddingHorizontal: 10,
+        backgroundColor: "white",
     },
     title: {
         alignItems: "center",
@@ -140,6 +142,7 @@ const styles = StyleSheet.create({
         marginBottom: 10,
     },
     passwordContainer: {
+
         flexDirection: 'row',
         alignItems: 'center',
         width: screenWidth * 0.8,
