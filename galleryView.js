@@ -121,6 +121,7 @@ export default function ImageCarousel({ userId }) {
     );
 }
 
+
 const styles = StyleSheet.create({
     container: {
         flex: 1,

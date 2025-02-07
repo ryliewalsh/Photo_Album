@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import { query, where, getDocs, addDoc, collection } from "firebase/firestore";
+import {query, where, getDocs, addDoc, collection, doc, getDoc, updateDoc} from "firebase/firestore";
 import {
     Button,
     Image,
@@ -93,13 +93,20 @@ export const uploadImage = async (uri, setProgress, userId, albumId) => {
         Alert.alert("No Album Selected", "Please select an album before uploading.");
         return null;
     }
+
     try {
+        // Fetch the image as a blob
         const response = await fetch(uri);
         const blob = await response.blob();
+
+        // Define the file name and reference in Firebase Storage
         const fileName = `images/${userId}.${Date.now()}.jpg`;
         const storageRef = ref(storage, fileName);
+
+        // Upload the image to Firebase Storage
         const uploadTask = uploadBytesResumable(storageRef, blob);
 
+        // Track the upload progress
         uploadTask.on(
             'state_changed',
             (snapshot) => {
@@ -112,24 +119,41 @@ export const uploadImage = async (uri, setProgress, userId, albumId) => {
             }
         );
 
+        // Wait for the upload to complete and get the download URL
         const snapshot = await uploadTask;
         const downloadURL = await getDownloadURL(snapshot.ref);
 
+        // Add the image metadata to the "images" collection in Firestore
         await addDoc(collection(db, "images"), {
             url: downloadURL,
             uploadedBy: userId,
-            albumId,
+            albumId: albumId,
             sharedWith: [],
             timestamp: new Date(),
         });
 
-        return downloadURL;
+        // Get the current album and update the "images" array
+        const albumRef = doc(db, "albums", albumId);
+        const albumSnapshot = await getDoc(albumRef);
+
+        if (albumSnapshot.exists()) {
+            const albumData = albumSnapshot.data();
+            const updatedImages = [...albumData.images, downloadURL]; // Append the new image URL to the existing images array
+
+            // Update the album document with the new images array
+            await updateDoc(albumRef, {
+                images: updatedImages,
+            });
+        }
+
+        return downloadURL; // Return the URL of the uploaded image
     } catch (error) {
         console.error("Upload failed:", error);
         Alert.alert("Upload Failed", "An error occurred during the upload.");
         return null;
     }
 };
+
 
 export default function ImageUploader({ userId }) {
     const [images, setImages] = useState([]);
