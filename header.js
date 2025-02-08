@@ -1,8 +1,18 @@
 import React, {useEffect, useState} from "react";
-import {View, Text, Button, StyleSheet, TouchableOpacity, TouchableWithoutFeedback} from "react-native";
+import {
+    View,
+    Text,
+    Button,
+    StyleSheet,
+    TouchableOpacity,
+    TouchableWithoutFeedback,
+    Dimensions,
+    Image
+} from "react-native";
 import { getAuth, signOut } from "firebase/auth";
 import UserSettings from "./userSettings";
-import { MaterialIcons } from "@expo/vector-icons"; // For hamburger menu icon
+import { MaterialIcons } from "@expo/vector-icons";
+import logoutIcon from "./assets/logout.png"; // For hamburger menu icon
 
 export default function Header({ onLogout, user, setMode, mode }) {
     const [isMenuOpen, setIsMenuOpen] = useState(false); // State to toggle menu visibility
@@ -52,20 +62,25 @@ export default function Header({ onLogout, user, setMode, mode }) {
 
     return (
         <TouchableWithoutFeedback onPress={handleTouch}>
-            <View style={styles.container}>
+            <View style={styles.header_container}>
                 {showDisplay ? (
-                    <>
-                        <TouchableOpacity
-                            onPress={() => setIsMenuOpen((prev) => !prev)}
-                            style={styles.hamburgerButton}
-                        >
-                            <MaterialIcons name="menu" size={24} color="white" />
-                        </TouchableOpacity>
+                    <> <View style={styles.icon_container}>
+                            <TouchableOpacity
+                                onPress={() => setIsMenuOpen((prev) => !prev)}
+                                style={styles.hamburgerButton}
+                            >
+                                <MaterialIcons name="menu" size={24} color="white" />
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={handleLogout} style={styles.buttonImage}>
+                                <Image source={logoutIcon} style={styles.buttonImage} />
+                            </TouchableOpacity>
+                    </View>
 
                         {isMenuOpen && (
                             <View style={styles.menu}>
                                 <View style ={styles.user_container}>
-                                    <Text style={styles.title}>Welcome, {user?.email}!</Text>
+                                    <Text style={styles.title}>Welcome, {user?.email} </Text>
+
                                     <TouchableOpacity
                                         onPress={handleSettingsTouch}
                                         style={styles.settingsButton}
@@ -73,8 +88,12 @@ export default function Header({ onLogout, user, setMode, mode }) {
                                         <MaterialIcons name="settings" size={24} color="white" />
                                     </TouchableOpacity>
                                 </View>
-                                <Button title="Logout" onPress={handleLogout} />
-                                <Button title={`Switch to ${mode === "display" ? "Upload" : "Display"} Mode`} onPress={toggleMode} />
+                                <View style ={styles.user_container}>
+                                    <TouchableOpacity onPress={toggleMode} style={styles.button}>
+                                        <Text>{`Switch to ${mode === "display" ? "Upload" : "Display"} Mode`}</Text>
+                                    </TouchableOpacity>
+                                </View>
+
                             </View>
                         )}
                     </>
@@ -84,21 +103,27 @@ export default function Header({ onLogout, user, setMode, mode }) {
     );
 
 }
+const screenWidth = Dimensions.get('window').width;
+const screenHeight = Dimensions.get('window').height;
 
 const styles = StyleSheet.create({
-    container: {
+    header_container: {
         width: "100%",
-        paddingTop: "30%",
+        paddingTop: screenHeight * .1,
         backgroundColor: "black",
         zIndex: 1,
 
     },
+    icon_container:{
+        flexDirection: "row",
+        justifyContent: "space-between",
+    },
     user_container: {
         width: "100%",
-        paddingTop: "20%",
-        backgroundColor: "black",
+
         zIndex: 1,
         flexDirection: "row",
+        justifyContent: "space-evenly",
 
     },
     hamburgerButton: {
@@ -107,13 +132,13 @@ const styles = StyleSheet.create({
 
     },
     settingsButton: {
-        padding: 10,
+        padding: 0,
         marginLeft: 10,
 
     },
     menu: {
-        padding: 20,
-        backgroundColor: "blue",
+        padding: screenHeight *.01,
+        backgroundColor: "grey",
     },
     title: {
         color: "#fff",
@@ -122,4 +147,10 @@ const styles = StyleSheet.create({
         marginBottom: 10,
         width:"90%",
     },
+    buttonImage: {
+        width: 50,
+        height: 50,
+        marginTop: 5,
+        marginRight: 10,
+    }
 });
