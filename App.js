@@ -6,6 +6,7 @@ import ImageUploader from "./imageUpload";
 import ImageCarousel from "./galleryView";
 import HomeScreen from "./landingPage";
 import Header from "./header";
+import ShareScreen from "./share";
 
 export default function App() {
     const [user, setUser] = useState(null);
@@ -52,7 +53,7 @@ export default function App() {
             {mode === "home" && <HomeScreen setMode={setMode} handleLogout={handleLogout} />}
             {mode === "view" && <ImageCarousel userId={user?.uid} />}
             {mode === "upload" && <ImageUploader userId={user?.uid} />}
-            {mode === "share" && <Text>Sharing Feature Coming Soon...</Text>}
+            {mode === "share" && <ShareScreen handleLogout={handleLogout} />}
 
             {mode !== "home" && (
 
