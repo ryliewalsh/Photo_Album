@@ -44,7 +44,7 @@ export default function App() {
 
     return (
         <View style={styles.container}>
-            {mode !== "home" && (
+            {mode !== "home" || mode !== "share" && (
                 <View>
                     <Header user={user} onLogout={handleLogout} setMode={setMode} mode={mode} />
                 </View>

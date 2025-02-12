@@ -1,11 +1,23 @@
 import React, {useEffect, useState} from "react";
-import {View, Text, Image, TouchableOpacity, StyleSheet, Dimensions, Alert, TextInput, Button} from "react-native";
+import {
+    View,
+    Text,
+    Image,
+    TouchableOpacity,
+    StyleSheet,
+    Dimensions,
+    Alert,
+    TextInput,
+    Button,
+    Modal
+} from "react-native";
 import embellishment from "./assets/FrameEmbellishment.png";
 
-import {addDoc, collection, doc, getDocs, query, setDoc, where} from "firebase/firestore";
+import {addDoc, collection, doc, getDoc, getDocs, query, setDoc, where} from "firebase/firestore";
 import {db} from "./firebase";
 import Feather from '@expo/vector-icons/Feather';
 import {getAuth, onAuthStateChanged} from "firebase/auth";
+import {get} from "react-native/Libraries/TurboModule/TurboModuleRegistry";
 
 
 
@@ -14,6 +26,8 @@ export default function ShareScreen({  handleLogout }) {
     const [userLookup, setUserLookup] = useState(null);
     const [showModal, setShowModal] = useState(false);
     const [foundId, setFoundId] = useState(null);
+    const [friendRequests, setFriendRequests] = useState([]);
+    const [requestsWithNames, setRequestsWithNames] = useState([]);
 
 
 
@@ -28,11 +42,31 @@ export default function ShareScreen({  handleLogout }) {
         return () => unsubscribe();
     }, []);
 
+    useEffect(() => {
+        if (showModal) {
+            handleFriendRequest();
+        }
+    }, [showModal]);
+
+
+    const getUserName = async (userId) => {
+        try {
+            console.log("Fetching username for userID:", userId);
+
+            const userDocRef = doc(db, "users", userId); // Directly reference document by ID
+            const userDocSnap = await getDoc(userDocRef);
+            console.log("username", userDocSnap.data().userName)
+            return userDocSnap.data().userName;
+        } catch (error) {
+            console.error("Username retrieval failed:", error.message);
+            return "Unknown User";
+        }
+    };
 
     const handleLookup = async () => {
         try {
-            const albumRef = collection(db, "users");
-            const q = query(albumRef, where("userName", "==", userLookup));
+            const userRef = collection(db, "users");
+            const q = query(userRef, where("userName", "==", userLookup));
 
             const userSnapshot = await getDocs(q);
 
@@ -41,21 +75,22 @@ export default function ShareScreen({  handleLogout }) {
                 return;
             }
 
-            // Get the first matching user document
-            const foundUser = userSnapshot.docs[0].data();
-            const foundUserId = userSnapshot.docs[0].id; // Correct way to get user ID
 
-            setFoundId(foundUserId); // Update state
+            const foundUser = userSnapshot.docs[0].data();
+            const foundUserId = userSnapshot.docs[0].id;
+
+            setFoundId(foundUserId);
 
             console.log("User found:", foundUserId);
 
-            // Pass the foundUserId directly instead of waiting for state update
+
             sendFriendRequest(foundUserId);
 
         } catch (error) {
             Alert.alert("Lookup Failed", error.message);
         }
     };
+
 
     const sendFriendRequest = async (toUserId) => {
         try {
@@ -92,12 +127,67 @@ export default function ShareScreen({  handleLogout }) {
     };
 
     //check for friend requests and handle reply
-    const handleFriendRequest = async () =>{
+    const handleFriendRequest = async () => {
+        try {
+            const friendRequestsRef = collection(db, "friendRequests");
+            const q = query(friendRequestsRef, where("toUser", "==", user.uid));
 
-    }
+            console.log("Fetching friend requests for:", user.uid);
+
+            const friendRequestsSnapshot = await getDocs(q);
+
+            if (friendRequestsSnapshot.empty) {
+                Alert.alert("No new requests");
+                return;
+            }
+
+            // Fetch each user's name
+            const requests = await Promise.all(
+                friendRequestsSnapshot.docs.map(async (docSnap) => {
+                    const requestData = docSnap.data();
+                    const senderUserName = await getUserName(requestData.fromUser);
+
+                    return {
+                        id: docSnap.id,
+                        fromUser: requestData.fromUser,
+                        userName: senderUserName,
+                        status: requestData.status,
+                    };
+                })
+            );
+
+            setFriendRequests(requests);
+        } catch (error) {
+            Alert.alert("Error", error.message);
+        }
+    };
+
+
 
     return (
         <View style={styles.container}>
+            {/* Friend Request Modal */}
+            <Modal visible={showModal} transparent={true} animationType="slide">
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+
+                        {friendRequests.length === 0 ? (
+                            <Text>No new friend requests</Text>
+                        ) : (
+                            friendRequests.map((request, index) => (
+                                <View key={index} style={styles.requestItem}>
+                                    <Text>{request.userName} has sent you a request</Text>
+                                    <View style={styles.buttonRow}>
+                                        <Button title="Accept" onPress={() => acceptRequest(request)} />
+                                        <Button title="Decline" onPress={() => declineRequest(request)} />
+                                    </View>
+                                </View>
+                            ))
+                        )}
+                        <Button title="Close" onPress={() => setShowModal(false)} />
+                    </View>
+                </View>
+            </Modal>
             <View style ={styles.user_container}>
 
                 <TouchableOpacity
@@ -138,10 +228,18 @@ const styles = StyleSheet.create({
     },
     user_container: {
         width: "100%",
-
+        marginTop: screenHeight * .1,
         zIndex: 2,
 
 
+    },
+    requestItem: {
+        marginVertical: 10,
+        padding: 10,
+        backgroundColor: "#f1f1f1",
+        borderRadius: 5,
+        width: "100%",
+        alignItems: "center",
     },
     logo:{
         marginTop: screenHeight * .15,
@@ -190,5 +288,30 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
     },
+    modalContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+    },
+    modalContent: {
+        width: "80%",
+        padding: 20,
+        backgroundColor: "white",
+        borderRadius: 10,
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    buttonRow: {
+        flexDirection: "row",
+        justifyContent: "space-around",
+        width: "100%",
+        marginTop: 5,
+    },
+
 
 });
