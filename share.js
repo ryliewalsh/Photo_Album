@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import embellishment from "./assets/FrameEmbellishment.png";
 
-import {addDoc, collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where, arrayUnion} from "firebase/firestore";
+import {addDoc, collection, doc, getDoc, getDocs, query, deleteDoc, updateDoc, where, arrayUnion} from "firebase/firestore";
 import {db} from "./firebase";
 import Feather from '@expo/vector-icons/Feather';
 import {getAuth, onAuthStateChanged} from "firebase/auth";
@@ -78,7 +78,15 @@ export default function ShareScreen({  handleLogout }) {
 
             const foundUser = userSnapshot.docs[0].data();
             const foundUserId = userSnapshot.docs[0].id;
+            // Check if the found user is already a friend
+            const currentUserRef = doc(db, "users", user.uid);
+            const currentUserDoc = await getDoc(currentUserRef);
+            const currentUserData = currentUserDoc.data();
 
+            if (currentUserData.friends && currentUserData.friends.includes(foundUserId)) {
+                Alert.alert("Already friends", "You are already friends with this user.");
+                return;
+            }
             setFoundId(foundUserId);
 
             console.log("User found:", foundUserId);
@@ -176,10 +184,11 @@ export default function ShareScreen({  handleLogout }) {
                 friends: arrayUnion(friendDocRef)
             });
 
-
-            await updateDoc(requestDocRef, {
-                status: "accepted"
-            });
+            // update requests displayed
+            await deleteDoc(requestDocRef);
+            setFriendRequests((prevRequests) =>
+                prevRequests.filter((req) => req.id !== request.id)
+            );
 
             console.log("Friend request accepted!");
 
