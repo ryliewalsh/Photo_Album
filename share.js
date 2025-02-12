@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import embellishment from "./assets/FrameEmbellishment.png";
 
-import {addDoc, collection, doc, getDoc, getDocs, query, setDoc, where} from "firebase/firestore";
+import {addDoc, collection, doc, getDoc, getDocs, query, setDoc, updateDoc, where, arrayUnion} from "firebase/firestore";
 import {db} from "./firebase";
 import Feather from '@expo/vector-icons/Feather';
 import {getAuth, onAuthStateChanged} from "firebase/auth";
@@ -159,6 +159,33 @@ export default function ShareScreen({  handleLogout }) {
             setFriendRequests(requests);
         } catch (error) {
             Alert.alert("Error", error.message);
+        }
+    };
+
+    //accepting requests updates friendRequests and adds User ref to users friends
+    const acceptRequest = async (request) => {
+        console.log("Request data:", request); // Log the request to check its structure
+
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            const friendDocRef = doc(db, "users", request.fromUser);
+            const requestDocRef = doc(db, "friendRequests", request.id);
+
+
+            await updateDoc(userDocRef, {
+                friends: arrayUnion(friendDocRef)
+            });
+
+
+            await updateDoc(requestDocRef, {
+                status: "accepted"
+            });
+
+            console.log("Friend request accepted!");
+
+        } catch (error) {
+            console.error("Error adding friend:", error);
+            Alert.alert("Error", "Error adding friend: " + error.message);
         }
     };
 
