@@ -17,7 +17,7 @@ import {addDoc, collection, doc, getDoc, getDocs, query, deleteDoc, updateDoc, w
 import {db} from "./firebase";
 import Feather from '@expo/vector-icons/Feather';
 import {getAuth, onAuthStateChanged} from "firebase/auth";
-import {get} from "react-native/Libraries/TurboModule/TurboModuleRegistry";
+
 
 
 
@@ -195,6 +195,27 @@ export default function ShareScreen({  handleLogout }) {
         } catch (error) {
             console.error("Error adding friend:", error);
             Alert.alert("Error", "Error adding friend: " + error.message);
+        }
+    };
+
+    const declineRequest = async (request) => {
+        console.log("Request data:", request); // Log the request to check its structure
+
+        try {
+
+            const requestDocRef = doc(db, "friendRequests", request.id);
+
+            // update requests displayed
+            await deleteDoc(requestDocRef);
+            setFriendRequests((prevRequests) =>
+                prevRequests.filter((req) => req.id !== request.id)
+            );
+
+            console.log("Friend request denied");
+
+        } catch (error) {
+            console.error("Error denying friend:", error);
+            Alert.alert("Error", "Error denying friend: " + error.message);
         }
     };
 
