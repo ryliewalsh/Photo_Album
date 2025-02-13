@@ -234,7 +234,7 @@ export default function ShareScreen({  handleLogout }) {
 
     //accepting requests updates friendRequests and adds User ref to users friends
     const acceptRequest = async (request) => {
-        console.log("Request data:", request); // Log the request to check its structure
+        console.log("Request data:", request);
 
         try {
             const userDocRef = doc(db, "users", user.uid);
