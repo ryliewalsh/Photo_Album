@@ -24,9 +24,11 @@ import {getAuth, onAuthStateChanged} from "firebase/auth";
 export default function ShareScreen({  handleLogout }) {
     const [user, setUser] = useState(null);
     const [userLookup, setUserLookup] = useState(null);
-    const [showModal, setShowModal] = useState(false);
+    const [showNotifModal, setShowNotifModal] = useState(false);
+    const [showFriendModal, setShowFriendModal] = useState(false);
     const [foundId, setFoundId] = useState(null);
     const [friendRequests, setFriendRequests] = useState([]);
+    const [friendList, setFriendList] = useState([]);
     const [requestsWithNames, setRequestsWithNames] = useState([]);
 
 
@@ -43,11 +45,17 @@ export default function ShareScreen({  handleLogout }) {
     }, []);
 
     useEffect(() => {
-        if (showModal) {
+        if (showNotifModal) {
             handleFriendRequest();
         }
-    }, [showModal]);
+    }, [showNotifModal]);
 
+
+    useEffect(() => {
+        if (showFriendModal) {
+            handleGetFriends();
+        }
+    }, [showFriendModal]);
 
     const getUserName = async (userId) => {
         try {
@@ -134,6 +142,63 @@ export default function ShareScreen({  handleLogout }) {
         }
     };
 
+    // list friends and allow deletes
+    const handleGetFriends = async () => {
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+
+            console.log("Fetching friends of:", user.uid);
+
+            if (!userDocSnap.exists()) {
+                console.warn(`No user found with userID: ${user.uid}`);
+                return [];
+            }
+
+            const userData = userDocSnap.data();
+            const friends = userData.friends || [];
+
+            console.log("Raw friends array:", JSON.stringify(friends, null, 2));
+
+            if (!Array.isArray(friends) || friends.length === 0) {
+                console.log("No friends found.");
+                setFriendRequests([]);
+                return;
+            }
+
+            console.log("Fetching usernames for:", friends);
+
+            const friendsList = await Promise.all(
+                friends.map(async (friend, index) => {
+                    const friendId = typeof friend === "string" ? friend : friend?.id;
+
+                    if (!friendId) {
+                        console.warn(`Skipping invalid friend at index ${index}:`, friend);
+                        return null;
+                    }
+
+                    try {
+                        const username = await getUserName(friendId);
+                        console.log(`Username for ${friendId}:`, username);
+                        return username ? { id: friendId, username } : null;
+                    } catch (error) {
+                        console.error(`Error fetching username for ${friendId}:`, error);
+                        return null;
+                    }
+                })
+            );
+
+            setFriendList(friendsList.filter(friend => friend !== null));
+        } catch (error) {
+            console.error("Error in handleGetFriends:", error);
+            Alert.alert("Error", error.message);
+        }
+    };
+
+
+
+
+
     //check for friend requests and handle reply
     const handleFriendRequest = async () => {
         try {
@@ -144,10 +209,7 @@ export default function ShareScreen({  handleLogout }) {
 
             const friendRequestsSnapshot = await getDocs(q);
 
-            if (friendRequestsSnapshot.empty) {
-                Alert.alert("No new requests");
-                return;
-            }
+
 
             // Fetch each user's name
             const requests = await Promise.all(
@@ -224,7 +286,7 @@ export default function ShareScreen({  handleLogout }) {
     return (
         <View style={styles.container}>
             {/* Friend Request Modal */}
-            <Modal visible={showModal} transparent={true} animationType="slide">
+            <Modal visible={showNotifModal} transparent={true} animationType="slide">
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
 
@@ -241,17 +303,42 @@ export default function ShareScreen({  handleLogout }) {
                                 </View>
                             ))
                         )}
-                        <Button title="Close" onPress={() => setShowModal(false)} />
+                        <Button title="Close" onPress={() => setShowNotifModal(false)} />
                     </View>
                 </View>
             </Modal>
+
+                {/* Friend List Modal */}
+                <Modal visible={showFriendModal} transparent={true} animationType="slide">
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalContent}>
+
+                            {friendList.length === 0 ? (
+                                <Text>No Friends yet... Add someone!</Text>
+                            ) : (
+                                friendList.map((friend, index) => (
+                                    <View key={index} style={styles.requestItem}>
+                                        <Text>{friend.username} </Text>
+                                    </View>
+                                ))
+                            )}
+                            <Button title="Close" onPress={() => setShowFriendModal(false)} />
+                        </View>
+                    </View>
+                </Modal>
             <View style ={styles.user_container}>
 
                 <TouchableOpacity
-                    onPress={() => setShowModal(true)}
+                    onPress={() => setShowNotifModal(true)}
                     style={styles.settingsButton}
                 >
                     <Feather name="inbox" size={24} color="black" />
+                </TouchableOpacity>
+                <TouchableOpacity
+                    onPress={() => setShowFriendModal(true)}
+                    style={styles.friendButton}
+                >
+                    <Feather name="users" size={24} color="black" />
                 </TouchableOpacity>
             </View>
             {/* Frame Logo */}
@@ -287,7 +374,9 @@ const styles = StyleSheet.create({
         width: "100%",
         marginTop: screenHeight * .1,
         zIndex: 2,
-
+        flexDirection: "row",
+        justifyContent:"space-between",
+        paddingHorizontal: 10,
 
     },
     requestItem: {
@@ -368,6 +457,12 @@ const styles = StyleSheet.create({
         justifyContent: "space-around",
         width: "100%",
         marginTop: 5,
+    },
+    friendButton: {
+        padding: 0,
+        marginRight: 1,
+
+
     },
 
 
