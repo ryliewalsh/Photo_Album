@@ -104,6 +104,7 @@ export default function ShareScreen({  handleLogout }) {
     };
 
     const handleLookup = async () => {
+
         try {
             const userRef = collection(db, "users");
             const q = query(userRef, where("userName", "==", userLookup));
@@ -118,6 +119,12 @@ export default function ShareScreen({  handleLogout }) {
 
             const foundUser = userSnapshot.docs[0].data();
             const foundUserId = userSnapshot.docs[0].id;
+
+            // Dont allow users to add themselves
+            if(foundUserId == user.uid){
+                Alert.alert("That's you bro");
+                return;ß
+            }
             // Check if the found user is already a friend
             const currentUserRef = doc(db, "users", user.uid);
             const currentUserDoc = await getDoc(currentUserRef);
@@ -127,6 +134,7 @@ export default function ShareScreen({  handleLogout }) {
                 Alert.alert("Already friends", "You are already friends with this user.");
                 return;
             }
+
             setFoundId(foundUserId);
 
             console.log("User found:", foundUserId);
