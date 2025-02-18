@@ -49,6 +49,7 @@ export default function AuthScreen() {
                 userName,
                 email,
                 albums: [],
+                friends: [],
             });
 
             Alert.alert("Sign-Up Successful", "Your account has been created!");

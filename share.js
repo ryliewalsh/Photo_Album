@@ -26,10 +26,11 @@ export default function ShareScreen({  handleLogout }) {
     const [userLookup, setUserLookup] = useState(null);
     const [showNotifModal, setShowNotifModal] = useState(false);
     const [showFriendModal, setShowFriendModal] = useState(false);
+    const [showFDetailsModal, setShowFDetailsModal] = useState(false);
     const [foundId, setFoundId] = useState(null);
     const [friendRequests, setFriendRequests] = useState([]);
     const [friendList, setFriendList] = useState([]);
-    const [requestsWithNames, setRequestsWithNames] = useState([]);
+    const [selectedFriend, setSelectedFriend] = useState(null);
 
 
 
@@ -57,6 +58,37 @@ export default function ShareScreen({  handleLogout }) {
         }
     }, [showFriendModal]);
 
+    useEffect(() => {
+        if (showFDetailsModal) {
+            handleFDetails();
+        }
+    }, [showFDetailsModal]);
+
+    const openFriendDetails = (friend) => {
+        console.log("should open deeets");
+        console.log(setSelectedFriend((friend)))
+        setSelectedFriend(friend);
+        setShowFDetailsModal(true);
+    };
+    const handleRemoveFriend = () => {
+        if (selectedFriend) {
+            handleDeleteFriend(selectedFriend.id);
+            closeFriendDetailsModal();
+        }
+    };
+    const closeFriendDetailsModal = () => {
+        setShowFDetailsModal(false);
+        setSelectedFriend(null);
+    };
+
+    // handleFDetails function to simulate additional fetching or actions on opening the details modal
+    const handleFDetails = () => {
+        if (selectedFriend) {
+            // You can add logic here to fetch additional details or perform actions when the modal is opened.
+            console.log(`Fetching details for ${selectedFriend.username}`);
+            // Example: if there's a backend call to fetch additional info, you can call it here
+        }
+    };
     const getUserName = async (userId) => {
         try {
             console.log("Fetching username for userID:", userId);
@@ -156,6 +188,7 @@ export default function ShareScreen({  handleLogout }) {
             }
 
             const userData = userDocSnap.data();
+            console.log("User Data:", JSON.stringify(userData, null, 2));
             const friends = userData.friends || [];
 
             console.log("Raw friends array:", JSON.stringify(friends, null, 2));
@@ -238,20 +271,26 @@ export default function ShareScreen({  handleLogout }) {
 
         try {
             const userDocRef = doc(db, "users", user.uid);
-            const friendDocRef = doc(db, "users", request.fromUser);
             const requestDocRef = doc(db, "friendRequests", request.id);
-
-
+            const senderDocRef = doc(db, "users", request.fromUser);
+            console.log(senderDocRef)
+            console.log(userDocRef)
+            console.log(typeof user.uid, typeof request.toUser);
+            //update receivers friend list
             await updateDoc(userDocRef, {
-                friends: arrayUnion(friendDocRef)
+                friends: arrayUnion(request.fromUser)
             });
 
-            // update requests displayed
+            //update senders friend list
+            await updateDoc(senderDocRef, {
+                friends: arrayUnion(user.uid)
+            });
+
+
             await deleteDoc(requestDocRef);
             setFriendRequests((prevRequests) =>
                 prevRequests.filter((req) => req.id !== request.id)
             );
-
             console.log("Friend request accepted!");
 
         } catch (error) {
@@ -280,6 +319,7 @@ export default function ShareScreen({  handleLogout }) {
             Alert.alert("Error", "Error denying friend: " + error.message);
         }
     };
+
 
 
 
@@ -318,7 +358,15 @@ export default function ShareScreen({  handleLogout }) {
                             ) : (
                                 friendList.map((friend, index) => (
                                     <View key={index} style={styles.requestItem}>
-                                        <Text>{friend.username} </Text>
+                                        <TouchableOpacity
+
+                                            onPress={() => openFriendDetails(friend)}
+                                            style={styles.friendButton}
+                                        >
+                                            <Text>{friend.username} </Text>
+
+                                        </TouchableOpacity>
+
                                     </View>
                                 ))
                             )}
@@ -326,6 +374,22 @@ export default function ShareScreen({  handleLogout }) {
                         </View>
                     </View>
                 </Modal>
+            {/* Friend Details Modal */}
+            {selectedFriend && (
+                <Modal visible={showFDetailsModal} transparent={true} animationType="slide">
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalContent}>
+                            <Text>{selectedFriend.username}'s Info</Text>
+                            {/* Display additional friend details */}
+                            <Text>DEETS</Text>
+
+                            {/* Remove Friend Button */}
+                            <Button title="Remove Friend" onPress={handleRemoveFriend} />
+                            <Button title="Close"onPress={() => setShowFDetailsModal(false)} />
+                        </View>
+                    </View>
+                </Modal>
+            )}
             <View style ={styles.user_container}>
 
                 <TouchableOpacity
