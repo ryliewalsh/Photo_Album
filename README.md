@@ -43,11 +43,11 @@
 
 ### **4. Tech Stack**
 - **Frontend**: React.js or Vue.js
-- **Backend**: Node.js with Express or a PHP-based backend
-- **Database**: PostgreSQL or MongoDB
-- **Authentication**: OAuth2 or JWT
-- **Image Storage**: AWS S3, Cloudinary, or a local storage solution
-- **Deployment**: Vercel, Heroku, or AWS for scalability
+- **Backend**: Node.js 
+- **Database**: Firebase
+- **Authentication**: Firebase 
+- **Image Storage**: Firebase
+- **Deployment**: 
 
 ---
 
