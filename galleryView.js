@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, Image, StyleSheet, Text, Dimensions } from "react-native";
-import { Picker } from "@react-native-picker/picker";
-import { db } from "./firebase"; // Removed storage import since we use Firestore-stored URLs
+import { View, Image, StyleSheet, Text, Dimensions, Modal, TouchableOpacity } from "react-native";
+import { db } from "./firebase"; // Assuming you have Firebase initialized
 import { collection, query, where, getDocs } from "firebase/firestore";
 
 const screen = Dimensions.get("window");
@@ -11,23 +10,37 @@ export default function ImageCarousel({ userId }) {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [albums, setAlbums] = useState([]);
     const [selectedAlbumId, setSelectedAlbumId] = useState(null);
-    const [selectedAlbum, setSelectedAlbum] = useState(null);
-    // Fetch albums when component mounts
+    const [modalVisible, setModalVisible] = useState(false);
+
+    // Fetch both owned and shared albums when component mounts
     useEffect(() => {
         const fetchAlbums = async () => {
             try {
-                const albumQuery = query(collection(db, "albums"), where("ownerId", "==", userId));
-                const albumSnapshot = await getDocs(albumQuery);
-                const albumList = albumSnapshot.docs.map(doc => ({
+                // Fetch albums owned by the user
+                const ownedAlbumQuery = query(collection(db, "albums"), where("createdBy", "==", userId));
+                const ownedAlbumSnapshot = await getDocs(ownedAlbumQuery);
+                const ownedAlbumList = ownedAlbumSnapshot.docs.map(doc => ({
                     id: doc.id,
                     name: doc.data().name,
+                    type: "owned",
                 }));
 
-                setAlbums(albumList);
+                // Fetch albums shared with the user
+                const sharedAlbumQuery = query(collection(db, "albums"), where("sharedWith", "array-contains", userId));
+                const sharedAlbumSnapshot = await getDocs(sharedAlbumQuery);
+                const sharedAlbumList = sharedAlbumSnapshot.docs.map(doc => ({
+                    id: doc.id,
+                    name: doc.data().name,
+                    type: "shared",
+                }));
 
-                // Automatically select the first album if available
-                if (albumList.length > 0) {
-                    setSelectedAlbumId(albumList[0].id);
+
+                const allAlbums = [...ownedAlbumList, ...sharedAlbumList];
+                setAlbums(allAlbums);
+
+
+                if (allAlbums.length > 0 && !selectedAlbumId) {
+                    setSelectedAlbumId(allAlbums[0].id);
                 }
             } catch (error) {
                 console.error("Error fetching albums:", error);
@@ -37,15 +50,15 @@ export default function ImageCarousel({ userId }) {
         fetchAlbums();
     }, [userId]);
 
-    // Fetch images when an album is selected
+    // Fetch images when an album is selected (both owned and shared albums)
     useEffect(() => {
         const fetchImages = async () => {
             if (!selectedAlbumId) return;
 
             try {
+
                 const imageQuery = query(
                     collection(db, "images"),
-                    where("uploadedBy", "==", userId),
                     where("albumId", "==", selectedAlbumId)
                 );
                 const querySnapshot = await getDocs(imageQuery);
@@ -55,7 +68,7 @@ export default function ImageCarousel({ userId }) {
                     return;
                 }
 
-                // Use URLs directly from Firestore instead of fetching them from Storage
+
                 const urls = querySnapshot.docs.map(doc => doc.data().url).filter(url => url !== null);
                 setImageURLs(urls);
             } catch (error) {
@@ -64,7 +77,7 @@ export default function ImageCarousel({ userId }) {
         };
 
         fetchImages();
-    }, [selectedAlbumId, userId]); // Runs when selectedAlbumId changes
+    }, [selectedAlbumId, userId]);
 
     // Handle image carousel rotation
     useEffect(() => {
@@ -77,49 +90,42 @@ export default function ImageCarousel({ userId }) {
         }
     }, [imageURLs]);
 
-    useEffect(() => {
-        const fetchAlbums = async () => {
-            try {
-                const albumRef = collection(db, "albums");
-                const q = query(albumRef, where("createdBy", "==", userId));
-                const albumSnapshot = await getDocs(q);
-
-                const fetchedAlbums = albumSnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data(),
-                }));
-
-                setAlbums(fetchedAlbums);
-                numAlbums = fetchedAlbums.length;
-                console.log("Albums after setState:", albums);
-
-                // Automatically select the first album if none is selected
-                if (fetchedAlbums.length > 0 && !selectedAlbum) {
-                    setSelectedAlbum(fetchedAlbums[0].id);
-                }
-            } catch (error) {
-                console.error("Error fetching albums:", error);
-            }
-        };
-
-        if (userId) {
-            fetchAlbums();
-        }
-    }, [userId]);
-
     return (
         <View style={styles.container}>
-            {/* Album Picker */}
-            <View style={{ width: '100%', padding: 10, backgroundColor: 'lightgray' }}>
-                <Picker
-                    selectedValue={selectedAlbumId}
-                    onValueChange={(itemValue) => setSelectedAlbumId(itemValue)}
-                >
-                    {albums.map(album => (
-                        <Picker.Item key={album.id} label={album.name} value={album.id} />
-                    ))}
-                </Picker>
-            </View>
+            {/* Album Picker Button */}
+            <TouchableOpacity
+                style={styles.albumButton}
+                onPress={() => setModalVisible(true)}>
+                <Text style={styles.buttonText}>Select Album</Text>
+            </TouchableOpacity>
+
+            {/* Modal for selecting album */}
+            <Modal
+                visible={modalVisible}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Select an Album</Text>
+                        {albums.map(album => (
+                            <TouchableOpacity
+                                key={album.id}
+                                style={styles.albumOption}
+                                onPress={() => {
+                                    setSelectedAlbumId(album.id);
+                                    setModalVisible(false);
+                                }}>
+                                <Text>{album.name} ({album.type})</Text>
+                            </TouchableOpacity>
+                        ))}
+                        <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
+                            <Text style={styles.closeText}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
 
             {/* Image Display */}
             {imageURLs.length > 0 ? (
@@ -140,11 +146,49 @@ const styles = StyleSheet.create({
         alignItems: "center",
         backgroundColor: "black",
     },
-    picker: {
-        width: screen.width * 0.8,
-        color: "white",
+    albumButton: {
+        padding: 10,
         backgroundColor: "gray",
+        borderRadius: 5,
+    },
+    buttonText: {
+        color: "white",
+        fontSize: 18,
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+    },
+    modalContent: {
+        backgroundColor: "white",
+        padding: 20,
+        width: screen.width * 0.8,
+        borderRadius: 10,
+        alignItems: "center",
+    },
+    modalTitle: {
+        fontSize: 20,
         marginBottom: 10,
+    },
+    albumOption: {
+        padding: 10,
+        marginVertical: 5,
+        backgroundColor: "#f0f0f0",
+        borderRadius: 5,
+        width: "100%",
+        alignItems: "center",
+    },
+    closeButton: {
+        marginTop: 20,
+        backgroundColor: "red",
+        padding: 10,
+        borderRadius: 5,
+    },
+    closeText: {
+        color: "white",
+        fontSize: 18,
     },
     image: {
         width: screen.width * 0.9,
