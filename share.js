@@ -31,6 +31,8 @@ export default function ShareScreen({  handleLogout }) {
     const [friendRequests, setFriendRequests] = useState([]);
     const [friendList, setFriendList] = useState([]);
     const [selectedFriend, setSelectedFriend] = useState(null);
+    const [sharedAlbumList, setSharedAlbumList] = useState([]);
+    const [ownedAlbums, setOwnedAlbums] = useState([]);
 
 
 
@@ -57,16 +59,21 @@ export default function ShareScreen({  handleLogout }) {
             handleGetFriends();
         }
     }, [showFriendModal]);
-
     useEffect(() => {
-        if (showFDetailsModal) {
-            handleFDetails();
-        }
+        handleGetOwnedAlbums();
+
     }, [showFDetailsModal]);
 
+    useEffect(() => {
+        console.log("Updated selectedFriend:", selectedFriend);
+    }, [selectedFriend]);
+
     const openFriendDetails = (friend) => {
-        console.log("should open deeets");
-        console.log(setSelectedFriend((friend)))
+        setShowFriendModal(false);
+        console.log("Opening modal for friend:", friend);
+        setSelectedFriend(friend);
+        setShowFDetailsModal(true);
+
         setSelectedFriend(friend);
         setShowFDetailsModal(true);
     };
@@ -87,6 +94,7 @@ export default function ShareScreen({  handleLogout }) {
             // You can add logic here to fetch additional details or perform actions when the modal is opened.
             console.log(`Fetching details for ${selectedFriend.username}`);
             // Example: if there's a backend call to fetch additional info, you can call it here
+
         }
     };
     const getUserName = async (userId) => {
@@ -100,6 +108,33 @@ export default function ShareScreen({  handleLogout }) {
         } catch (error) {
             console.error("Username retrieval failed:", error.message);
             return "Unknown User";
+        }
+    };
+    const handleGetOwnedAlbums = async () => {
+        try {
+            // Reference to the "albums" collection
+            const albumsRef = collection(db, "albums");
+
+            // Get all albums where the owner is the current user
+            const q = query(albumsRef, where("createdBy", "==", user.uid));
+            const querySnapshot = await getDocs(q);
+
+            const albums = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+
+            if (albums.length === 0) {
+                console.log("No owned albums found.");
+            } else {
+                console.log("Owned albums:", albums);
+            }
+
+            setOwnedAlbums(albums); // Set owned albums to state
+
+        } catch (error) {
+            console.error("Error fetching owned albums:", error);
+            Alert.alert("Error", error.message);
         }
     };
 
@@ -123,7 +158,7 @@ export default function ShareScreen({  handleLogout }) {
             // Dont allow users to add themselves
             if(foundUserId == user.uid){
                 Alert.alert("That's you bro");
-                return;ß
+                return;
             }
             // Check if the found user is already a friend
             const currentUserRef = doc(db, "users", user.uid);
@@ -235,9 +270,34 @@ export default function ShareScreen({  handleLogout }) {
             Alert.alert("Error", error.message);
         }
     };
+    const handleGetAlbums = async () => {
+        try {
+            const userDocRef = doc(db, "users", user.uid);
+            const userDocSnap = await getDoc(userDocRef);
 
+            console.log("Fetching albums for user:", user.uid);
 
+            if (!userDocSnap.exists()) {
+                console.warn(`No user found with userID: ${user.uid}`);
+                return;
+            }
 
+            const userData = userDocSnap.data();
+            const allAlbums = userData.albums || [];
+
+            console.log("User's albums:", JSON.stringify(allAlbums, null, 2));
+
+            // Filter only albums that are shared with friends
+            const sharedAlbums = allAlbums.filter(album => album.sharedWith?.length > 0);
+
+            console.log("Shared albums:", JSON.stringify(sharedAlbums, null, 2));
+
+            setSharedAlbumList(sharedAlbums); // Update state
+        } catch (error) {
+            console.error("Error fetching albums:", error);
+            Alert.alert("Error", error.message);
+        }
+    };
 
 
     //check for friend requests and handle reply
@@ -329,6 +389,32 @@ export default function ShareScreen({  handleLogout }) {
     };
 
 
+    const handleShareAlbum = async (albumId) => {
+        if (!selectedFriend) return;
+
+        try {
+            const albumRef = doc(db, "albums", albumId);
+            const albumSnap = await getDoc(albumRef);
+
+            if (!albumSnap.exists()) {
+                console.error("Album not found!");
+                return;
+            }
+
+            const albumData = albumSnap.data();
+            const updatedSharedWith = albumData.sharedWith ? [...albumData.sharedWith, selectedFriend.id] : [selectedFriend.id];
+
+            await updateDoc(albumRef, { sharedWith: updatedSharedWith });
+
+            console.log(`Album ${albumId} shared with ${selectedFriend.username}`);
+
+            // Refresh the shared albums list
+            setSharedAlbumList(prev => [...prev, { id: albumId, name: albumData.name }]);
+
+        } catch (error) {
+            console.error("Error sharing album:", error);
+        }
+    };
 
 
     return (
@@ -383,20 +469,55 @@ export default function ShareScreen({  handleLogout }) {
                     </View>
                 </Modal>
             {/* Friend Details Modal */}
-            {selectedFriend && (
+            {showFDetailsModal && selectedFriend && (
                 <Modal visible={showFDetailsModal} transparent={true} animationType="slide">
                     <View style={styles.modalContainer}>
                         <View style={styles.modalContent}>
-                            <Text>{selectedFriend.username}'s Info</Text>
-                            {/* Display additional friend details */}
-                            <Text>DEETS</Text>
+                            {selectedFriend ? (
+                                <>
+                                    <Text style={styles.modalTitle}>Share Albums with {selectedFriend.username}</Text>
 
-                            {/* Remove Friend Button */}
-                            <Button title="Remove Friend" onPress={handleRemoveFriend} />
-                            <Button title="Close"onPress={() => setShowFDetailsModal(false)} />
+                                    {/* Show Already Shared Albums */}
+                                    <Text style={styles.sectionTitle}>Shared with {selectedFriend.username}</Text>
+                                    {sharedAlbumList.filter(album => album.sharedWith?.includes(selectedFriend.id)).length === 0 ? (
+                                        <Text>No shared albums yet.</Text>
+                                    ) : (
+                                        sharedAlbumList
+                                            .filter(album => album.sharedWith?.includes(selectedFriend.id))
+                                            .map((album, index) => (
+                                                <View key={index} style={styles.albumItem}>
+                                                    <Text>{album.name}</Text>
+                                                </View>
+                                            ))
+                                    )}
+
+                                    {/* Show Available Albums to Share */}
+                                    <Text style={styles.sectionTitle}>Select an Album to Share</Text>
+                                    {ownedAlbums.length === 0 ? (
+                                        <Text>You have no albums yet.</Text>
+                                    ) : (
+                                        ownedAlbums.map((album, index) => (
+                                            <TouchableOpacity
+                                                key={index}
+                                                onPress={() => handleShareAlbum(album.id)}
+                                                style={styles.albumItem}
+                                            >
+                                                <Text>{album.name}</Text>
+                                            </TouchableOpacity>
+                                        ))
+                                    )}
+
+                                    <TouchableOpacity onPress={() => setShowFDetailsModal(false)} style={styles.closeButton}>
+                                        <Text style={styles.buttonText}>Close</Text>
+                                    </TouchableOpacity>
+                                </>
+                            ) : (
+                                <Text>Loading friend details...</Text>
+                            )}
                         </View>
                     </View>
                 </Modal>
+
             )}
             <View style ={styles.user_container}>
 
