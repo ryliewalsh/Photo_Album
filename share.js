@@ -54,20 +54,25 @@ export default function ShareScreen({ userId, handleLogout }) {
         }
     }, [showNotifModal]);
 
+    useEffect(() => {
+        console.log("friend modal")
+    }, [showFriendModal]);
 
     useEffect(() => {
         if (showFriendModal) {
             handleGetFriends();
         }
     }, [showFriendModal]);
-    useEffect(() => {
-        handleGetOwnedAlbums();
 
-    }, [showFDetailsModal]);
 
     useEffect(() => {
         console.log("showWarningModal changed:", showWarningModal);
+
     }, [showWarningModal]);
+    useEffect(() => {
+        console.log("showF changed:", showFDetailsModal);
+
+    }, [showFDetailsModal]);
 
     useEffect(() => {
         console.log("Updated selectedFriend:", selectedFriend);
@@ -264,49 +269,69 @@ export default function ShareScreen({ userId, handleLogout }) {
 
 
     const handleDeleteFriend = async () => {
-        console.log("Request data:", selectedFriend);
-        // User deletes his side
+        setShowFDetailsModal(false)
         try {
-            const userRef = collection(db, "users");
-            const q = query(userRef, where("friends", "array-contains", selectedFriend.id));
+            const userDocRef = doc(db, "users", user.uid);
+            const userDocSnapshot = await getDoc(userDocRef);
 
-            const userSnapshot = await getDocs(q);
-
-            const updatePromises = userSnapshot.docs.map(async (doc) => {
-                const userData = doc.data();
+            if (userDocSnapshot.exists()) {
+                const userData = userDocSnapshot.data();
                 const updatedFriends = userData.friends.filter(friendId => friendId !== selectedFriend.id);
 
-                return updateDoc(doc.ref, { friends: updatedFriends });
-            });
+                await updateDoc(userDocRef, { friends: updatedFriends });
 
-            await Promise.all(updatePromises); // Ensures all updates finish before proceeding
+                const selectedFriendDocRef = doc(db, "users", selectedFriend.id);
+                const selectedFriendDocSnapshot = await getDoc(selectedFriendDocRef);
+                // Remove current user from deleted friend as well
+                if (selectedFriendDocSnapshot.exists()) {
+                    const selectedFriendData = selectedFriendDocSnapshot.data();
+                    const updatedFriendFriends = selectedFriendData.friends.filter(friendId => friendId !== user.uid);
 
-            console.log("Friend removed successfully");
+                    await updateDoc(selectedFriendDocRef, { friends: updatedFriendFriends });
+                }
 
-            const albumRef = collection(db, "albums");
-            const q2 = query(albumRef,
-                where("createdBy", "==", user.uid),
-                where("sharedWith", "array-contains", selectedFriend.id)
-            );
+                const albumRef = collection(db, "albums");
+                const q3 = query(
+                    albumRef,
+                    where("createdBy", "==", user.uid),
+                    where("sharedWith", "array-contains", selectedFriend.id)
+                );
 
-            const albumSnapshot = await getDocs(q2);
+                const albumSnapshot = await getDocs(q3);
 
-            const promises = albumSnapshot.docs.map(async (doc) => {
-                const albumData = doc.data();
-                const updatedShared = albumData.sharedWith.filter(friendId => friendId !== selectedFriend.id);
+                const albumPromises = albumSnapshot.docs.map(async (doc) => {
+                    const albumData = doc.data();
+                    const updatedShared = albumData.sharedWith.filter(friendId => friendId !== selectedFriend.id);
 
-                return updateDoc(doc.ref, { sharedWith: updatedShared });
-            });
+                    return updateDoc(doc.ref, { sharedWith: updatedShared });
+                });
 
-            await Promise.all(promises);
+                await Promise.all(albumPromises);
 
-            console.log("Album access revoked");
-            // return to friend list
-            setShowFriendModal(true)
+                const albumRef2 = collection(db, "albums");
+                const q4 = query(
+                    albumRef2,
+                    where("createdBy", "==", selectedFriend.id),
+                    where("sharedWith", "array-contains", user.uid)
+                );
+
+                const albumSnapshot2 = await getDocs(q4);
+
+                const albumPromises2 = albumSnapshot2.docs.map(async (doc) => {
+                    const albumData = doc.data();
+                    const updatedShared = albumData.sharedWith.filter(friendId => friendId !== user.uid);
+
+                    return updateDoc(doc.ref, { sharedWith: updatedShared });
+                });
+
+                await Promise.all(albumPromises2);
+
+                setShowFriendModal(true);
+            }
         } catch (error) {
             console.error("Error removing friend:", error);
         }
-    }
+    };
 
 
     //check for friend requests and handle reply
@@ -539,7 +564,7 @@ export default function ShareScreen({ userId, handleLogout }) {
                                     <TouchableOpacity
                                         onPress={() => {
 
-                                            setShowFDetailsModal(false);
+                                            setShowFDetailsModal(false)
                                             console.log("Before setting showWarningModal:", showWarningModal);
                                             setTimeout(() => {
                                                 setShowWarningModal(true);
@@ -573,6 +598,7 @@ export default function ShareScreen({ userId, handleLogout }) {
                 <TouchableOpacity
                     onPress={() => setShowFriendModal(true)}
                     style={styles.friendButton}
+
                 >
                     <Feather name="users" size={24} color="black" />
                 </TouchableOpacity>
