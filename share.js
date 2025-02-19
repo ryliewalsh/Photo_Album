@@ -24,6 +24,7 @@ import {getAuth, onAuthStateChanged} from "firebase/auth";
 export default function ShareScreen({ userId, handleLogout }) {
     const [user, setUser] = useState(null);
     const [userLookup, setUserLookup] = useState(null);
+    const [showWarningModal, setShowWarningModal] = useState(false);
     const [showNotifModal, setShowNotifModal] = useState(false);
     const [showFriendModal, setShowFriendModal] = useState(false);
     const [showFDetailsModal, setShowFDetailsModal] = useState(false);
@@ -63,6 +64,10 @@ export default function ShareScreen({ userId, handleLogout }) {
         handleGetOwnedAlbums();
 
     }, [showFDetailsModal]);
+
+    useEffect(() => {
+        console.log("showWarningModal changed:", showWarningModal);
+    }, [showWarningModal]);
 
     useEffect(() => {
         console.log("Updated selectedFriend:", selectedFriend);
@@ -255,6 +260,8 @@ export default function ShareScreen({ userId, handleLogout }) {
             Alert.alert("Error", error.message);
         }
     };
+
+
 
     const handleDeleteFriend = async () => {
         console.log("Request data:", selectedFriend);
@@ -470,6 +477,26 @@ export default function ShareScreen({ userId, handleLogout }) {
                         </View>
                     </View>
                 </Modal>
+            {/* Warning for Deleting Friend Modal */}
+            {showWarningModal && (
+            <Modal visible={showWarningModal} transparent={true} animationType="slide">
+                <View style={styles.modalContainer}>
+                    <View style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Are you sure you want to remove this friend?</Text>
+
+                        <View style={styles.buttonRow}>
+                            <TouchableOpacity onPress={handleDeleteFriend} >
+                                <Text style={styles.buttonText}>Yes</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity onPress={() => setShowWarningModal(false)} style={styles.cancelButton}>
+                                <Text style={styles.buttonText}>No</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+            )}
+
             {/* Friend Details Modal */}
             {showFDetailsModal && selectedFriend && (
                 <Modal visible={showFDetailsModal} transparent={true} animationType="slide">
@@ -509,10 +536,19 @@ export default function ShareScreen({ userId, handleLogout }) {
                                         ))
                                     )}
 
-                                    <TouchableOpacity onPress={() => setShowFDetailsModal(false)} style={styles.closeButton}>
-                                        <Text style={styles.buttonText}>Close</Text>
-                                    </TouchableOpacity>
-                                    <TouchableOpacity onPress={() => handleDeleteFriend()} style={styles.closeButton}>
+                                    <TouchableOpacity
+                                        onPress={() => {
+
+                                            setShowFDetailsModal(false);
+                                            console.log("Before setting showWarningModal:", showWarningModal);
+                                            setTimeout(() => {
+                                                setShowWarningModal(true);
+                                                console.log("After setting showWarningModal:", showWarningModal);
+                                            }, 100);
+                                            // Short delay
+                                        }}
+                                        style={styles.closeButton}
+                                    >
                                         <Text style={styles.buttonText}>Remove Friend</Text>
                                     </TouchableOpacity>
                                 </>
@@ -522,6 +558,8 @@ export default function ShareScreen({ userId, handleLogout }) {
                         </View>
                     </View>
                 </Modal>
+
+
 
             )}
             <View style ={styles.user_container}>
