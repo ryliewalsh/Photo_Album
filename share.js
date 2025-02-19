@@ -77,26 +77,13 @@ export default function ShareScreen({  handleLogout }) {
         setSelectedFriend(friend);
         setShowFDetailsModal(true);
     };
-    const handleRemoveFriend = () => {
-        if (selectedFriend) {
-            handleDeleteFriend(selectedFriend.id);
-            closeFriendDetailsModal();
-        }
-    };
+
     const closeFriendDetailsModal = () => {
         setShowFDetailsModal(false);
         setSelectedFriend(null);
     };
 
-    // handleFDetails function to simulate additional fetching or actions on opening the details modal
-    const handleFDetails = () => {
-        if (selectedFriend) {
-            // You can add logic here to fetch additional details or perform actions when the modal is opened.
-            console.log(`Fetching details for ${selectedFriend.username}`);
-            // Example: if there's a backend call to fetch additional info, you can call it here
 
-        }
-    };
     const getUserName = async (userId) => {
         try {
             console.log("Fetching username for userID:", userId);
@@ -270,34 +257,48 @@ export default function ShareScreen({  handleLogout }) {
             Alert.alert("Error", error.message);
         }
     };
-    const handleGetAlbums = async () => {
+
+    const handleDeleteFriend = async () => {
+        console.log("Request data:", selectedFriend); // Log the request to check its structure
         try {
-            const userDocRef = doc(db, "users", user.uid);
-            const userDocSnap = await getDoc(userDocRef);
+            const userRef = collection(db, "users");
+            const q = query(userRef, where("friends", "array-contains", selectedFriend.id));
 
-            console.log("Fetching albums for user:", user.uid);
+            const userSnapshot = await getDocs(q);
 
-            if (!userDocSnap.exists()) {
-                console.warn(`No user found with userID: ${user.uid}`);
-                return;
-            }
+            const updatePromises = userSnapshot.docs.map(async (doc) => {
+                const userData = doc.data();
+                const updatedFriends = userData.friends.filter(friendId => friendId !== selectedFriend.id);
 
-            const userData = userDocSnap.data();
-            const allAlbums = userData.albums || [];
+                return updateDoc(doc.ref, { friends: updatedFriends });
+            });
 
-            console.log("User's albums:", JSON.stringify(allAlbums, null, 2));
+            await Promise.all(updatePromises); // Ensures all updates finish before proceeding
 
-            // Filter only albums that are shared with friends
-            const sharedAlbums = allAlbums.filter(album => album.sharedWith?.length > 0);
+            console.log("Friend removed successfully");
 
-            console.log("Shared albums:", JSON.stringify(sharedAlbums, null, 2));
+            const albumRef = collection(db, "albums");
+            const q2 = query(albumRef,
+                where("createdBy", "==", user.uid),
+                where("sharedWith", "array-contains", selectedFriend.id)
+            );
 
-            setSharedAlbumList(sharedAlbums); // Update state
+            const albumSnapshot = await getDocs(q2);
+
+            const promises = albumSnapshot.docs.map(async (doc) => {
+                const albumData = doc.data();
+                const updatedShared = albumData.sharedWith.filter(friendId => friendId !== selectedFriend.id);
+
+                return updateDoc(doc.ref, { sharedWith: updatedShared });
+            });
+
+            await Promise.all(promises);
+
+            console.log("Album access revoked");
         } catch (error) {
-            console.error("Error fetching albums:", error);
-            Alert.alert("Error", error.message);
+            console.error("Error removing friend:", error);
         }
-    };
+    }
 
 
     //check for friend requests and handle reply
@@ -509,6 +510,9 @@ export default function ShareScreen({  handleLogout }) {
 
                                     <TouchableOpacity onPress={() => setShowFDetailsModal(false)} style={styles.closeButton}>
                                         <Text style={styles.buttonText}>Close</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={() => handleDeleteFriend()} style={styles.closeButton}>
+                                        <Text style={styles.buttonText}>Remove Friend</Text>
                                     </TouchableOpacity>
                                 </>
                             ) : (
