@@ -53,7 +53,7 @@ export default function App() {
             {mode === "home" && <HomeScreen setMode={setMode} handleLogout={handleLogout} />}
             {mode === "view" && <ImageCarousel userId={user?.uid} />}
             {mode === "upload" && <ImageUploader userId={user?.uid} />}
-            {mode === "share" && <ShareScreen handleLogout={handleLogout} />}
+            {mode === "share" && <ShareScreen userId={user?.uid} handleLogout={handleLogout} />}
 
             {mode !== "home" && (
 

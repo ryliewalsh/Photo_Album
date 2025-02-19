@@ -21,7 +21,7 @@ import {getAuth, onAuthStateChanged} from "firebase/auth";
 
 
 
-export default function ShareScreen({  handleLogout }) {
+export default function ShareScreen({ userId, handleLogout }) {
     const [user, setUser] = useState(null);
     const [userLookup, setUserLookup] = useState(null);
     const [showNotifModal, setShowNotifModal] = useState(false);
@@ -74,8 +74,6 @@ export default function ShareScreen({  handleLogout }) {
         setSelectedFriend(friend);
         setShowFDetailsModal(true);
 
-        setSelectedFriend(friend);
-        setShowFDetailsModal(true);
     };
 
     const closeFriendDetailsModal = () => {
@@ -103,7 +101,7 @@ export default function ShareScreen({  handleLogout }) {
             const albumsRef = collection(db, "albums");
 
             // Get all albums where the owner is the current user
-            const q = query(albumsRef, where("createdBy", "==", user.uid));
+            const q = query(albumsRef, where("createdBy", "==", userId));
             const querySnapshot = await getDocs(q);
 
             const albums = querySnapshot.docs.map(doc => ({
@@ -259,7 +257,8 @@ export default function ShareScreen({  handleLogout }) {
     };
 
     const handleDeleteFriend = async () => {
-        console.log("Request data:", selectedFriend); // Log the request to check its structure
+        console.log("Request data:", selectedFriend);
+        // User deletes his side
         try {
             const userRef = collection(db, "users");
             const q = query(userRef, where("friends", "array-contains", selectedFriend.id));
@@ -295,6 +294,8 @@ export default function ShareScreen({  handleLogout }) {
             await Promise.all(promises);
 
             console.log("Album access revoked");
+            // return to friend list
+            setShowFriendModal(true)
         } catch (error) {
             console.error("Error removing friend:", error);
         }
@@ -479,21 +480,21 @@ export default function ShareScreen({  handleLogout }) {
                                     <Text style={styles.modalTitle}>Share Albums with {selectedFriend.username}</Text>
 
                                     {/* Show Already Shared Albums */}
-                                    <Text style={styles.sectionTitle}>Shared with {selectedFriend.username}</Text>
+                                    <Text style={styles.modalTitle}>Shared with {selectedFriend.username}</Text>
                                     {sharedAlbumList.filter(album => album.sharedWith?.includes(selectedFriend.id)).length === 0 ? (
                                         <Text>No shared albums yet.</Text>
                                     ) : (
                                         sharedAlbumList
                                             .filter(album => album.sharedWith?.includes(selectedFriend.id))
                                             .map((album, index) => (
-                                                <View key={index} style={styles.albumItem}>
+                                                <View key={index} style={styles.Item}>
                                                     <Text>{album.name}</Text>
                                                 </View>
                                             ))
                                     )}
 
                                     {/* Show Available Albums to Share */}
-                                    <Text style={styles.sectionTitle}>Select an Album to Share</Text>
+                                    <Text style={styles.modalTitle}>Select an Album to Share</Text>
                                     {ownedAlbums.length === 0 ? (
                                         <Text>You have no albums yet.</Text>
                                     ) : (
