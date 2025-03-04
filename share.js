@@ -11,7 +11,7 @@ import {
     Button,
     Modal
 } from "react-native";
-import embellishment from "./assets/FrameEmbellishment.png";
+
 
 import {addDoc, collection, doc, getDoc, getDocs, query, deleteDoc, updateDoc, where, arrayUnion} from "firebase/firestore";
 import {db} from "./firebase";
@@ -54,16 +54,18 @@ export default function ShareScreen({ userId, handleLogout }) {
         }
     }, [showNotifModal]);
 
-    useEffect(() => {
-        console.log("friend modal")
-    }, [showFriendModal]);
+
 
     useEffect(() => {
         if (showFriendModal) {
             handleGetFriends();
         }
     }, [showFriendModal]);
-
+    useEffect(() => {
+        if (showFDetailsModal && selectedFriend) {
+            console.log("Friend details modal opened for:", selectedFriend);
+        }
+    }, [showFDetailsModal, selectedFriend]);
 
     useEffect(() => {
         console.log("showWarningModal changed:", showWarningModal);
@@ -79,6 +81,8 @@ export default function ShareScreen({ userId, handleLogout }) {
     }, [selectedFriend]);
 
     const openFriendDetails = (friend) => {
+
+        handleGetOwnedAlbums();
         setShowFriendModal(false);
         console.log("Opening modal for friend:", friend);
         setSelectedFriend(friend);
@@ -86,10 +90,6 @@ export default function ShareScreen({ userId, handleLogout }) {
 
     };
 
-    const closeFriendDetailsModal = () => {
-        setShowFDetailsModal(false);
-        setSelectedFriend(null);
-    };
 
 
     const getUserName = async (userId) => {
@@ -269,7 +269,7 @@ export default function ShareScreen({ userId, handleLogout }) {
 
 
     const handleDeleteFriend = async () => {
-        setShowFDetailsModal(false)
+       setShowWarningModal(false)
         try {
             const userDocRef = doc(db, "users", user.uid);
             const userDocSnapshot = await getDoc(userDocRef);
@@ -332,6 +332,7 @@ export default function ShareScreen({ userId, handleLogout }) {
             console.error("Error removing friend:", error);
         }
     };
+
 
 
     //check for friend requests and handle reply
@@ -504,6 +505,7 @@ export default function ShareScreen({ userId, handleLogout }) {
                 </Modal>
             {/* Warning for Deleting Friend Modal */}
             {showWarningModal && (
+
             <Modal visible={showWarningModal} transparent={true} animationType="slide">
                 <View style={styles.modalContainer}>
                     <View style={styles.modalContent}>
@@ -513,7 +515,7 @@ export default function ShareScreen({ userId, handleLogout }) {
                             <TouchableOpacity onPress={handleDeleteFriend} >
                                 <Text style={styles.buttonText}>Yes</Text>
                             </TouchableOpacity>
-                            <TouchableOpacity onPress={() => setShowWarningModal(false)} style={styles.cancelButton}>
+                            <TouchableOpacity  style={styles.cancelButton}>
                                 <Text style={styles.buttonText}>No</Text>
                             </TouchableOpacity>
                         </View>
@@ -525,10 +527,14 @@ export default function ShareScreen({ userId, handleLogout }) {
             {/* Friend Details Modal */}
             {showFDetailsModal && selectedFriend && (
                 <Modal visible={showFDetailsModal} transparent={true} animationType="slide">
+
                     <View style={styles.modalContainer}>
+
                         <View style={styles.modalContent}>
+
                             {selectedFriend ? (
                                 <>
+
                                     <Text style={styles.modalTitle}>Share Albums with {selectedFriend.username}</Text>
 
                                     {/* Show Already Shared Albums */}
@@ -547,6 +553,7 @@ export default function ShareScreen({ userId, handleLogout }) {
 
                                     {/* Show Available Albums to Share */}
                                     <Text style={styles.modalTitle}>Select an Album to Share</Text>
+
                                     {ownedAlbums.length === 0 ? (
                                         <Text>You have no albums yet.</Text>
                                     ) : (
@@ -564,9 +571,10 @@ export default function ShareScreen({ userId, handleLogout }) {
                                     <TouchableOpacity
                                         onPress={() => {
 
-                                            setShowFDetailsModal(false)
+
                                             console.log("Before setting showWarningModal:", showWarningModal);
                                             setTimeout(() => {
+
                                                 setShowWarningModal(true);
                                                 console.log("After setting showWarningModal:", showWarningModal);
                                             }, 100);
@@ -575,7 +583,9 @@ export default function ShareScreen({ userId, handleLogout }) {
                                         style={styles.closeButton}
                                     >
                                         <Text style={styles.buttonText}>Remove Friend</Text>
+
                                     </TouchableOpacity>
+
                                 </>
                             ) : (
                                 <Text>Loading friend details...</Text>
@@ -615,11 +625,8 @@ export default function ShareScreen({ userId, handleLogout }) {
                 onChangeText={setUserLookup}
             />
             <Button title="Find" onPress={handleLookup} />
-            {/* Logout Button */}
-            <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-                <Text style={styles.logoutText}>Logout</Text>
-            </TouchableOpacity>
-            <Image source={embellishment} style={styles.embellishment} />
+
+
         </View>
     );
 }
@@ -687,15 +694,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "bold",
     },
-    embellishment: {
-        resizeMode:"cover",
-        width: screenWidth,
-        height: screenHeight * .15,
-        overflow: "hidden",
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-    },
+
     modalContainer: {
         flex: 1,
         justifyContent: "center",

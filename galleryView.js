@@ -2,10 +2,11 @@ import React, { useEffect, useState } from "react";
 import { View, Image, StyleSheet, Text, Dimensions, Modal, TouchableOpacity } from "react-native";
 import { db } from "./firebase"; // Assuming you have Firebase initialized
 import { collection, query, where, getDocs } from "firebase/firestore";
+import Feather from "@expo/vector-icons/Feather";
 
 const screen = Dimensions.get("window");
 
-export default function ImageCarousel({ userId }) {
+export default function ImageCarousel({ userId, setMode }) {
     const [imageURLs, setImageURLs] = useState([]);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const [albums, setAlbums] = useState([]);
@@ -34,10 +35,8 @@ export default function ImageCarousel({ userId }) {
                     type: "shared",
                 }));
 
-
                 const allAlbums = [...ownedAlbumList, ...sharedAlbumList];
                 setAlbums(allAlbums);
-
 
                 if (allAlbums.length > 0 && !selectedAlbumId) {
                     setSelectedAlbumId(allAlbums[0].id);
@@ -56,7 +55,6 @@ export default function ImageCarousel({ userId }) {
             if (!selectedAlbumId) return;
 
             try {
-
                 const imageQuery = query(
                     collection(db, "images"),
                     where("albumId", "==", selectedAlbumId)
@@ -67,7 +65,6 @@ export default function ImageCarousel({ userId }) {
                     setImageURLs([]);
                     return;
                 }
-
 
                 const urls = querySnapshot.docs.map(doc => doc.data().url).filter(url => url !== null);
                 setImageURLs(urls);
@@ -90,6 +87,10 @@ export default function ImageCarousel({ userId }) {
         }
     }, [imageURLs]);
 
+    const handleReturn = () => {
+        setMode("home");
+    };
+
     return (
         <View style={styles.container}>
             {/* Album Picker Button */}
@@ -98,6 +99,17 @@ export default function ImageCarousel({ userId }) {
                 onPress={() => setModalVisible(true)}>
                 <Text style={styles.buttonText}>Select Album</Text>
             </TouchableOpacity>
+
+            {/* Back Button Outside of Modal */}
+            <View style={styles.buttonRow}>
+                <TouchableOpacity onPress={handleReturn} style={styles.logoutButton}>
+                    <Feather
+                        name="arrow-left-circle"
+                        size={28}
+                        color={"#f4f4f4"}
+                    />
+                </TouchableOpacity>
+            </View>
 
             {/* Modal for selecting album */}
             <Modal
@@ -200,5 +212,18 @@ const styles = StyleSheet.create({
         fontSize: 20,
         textAlign: "center",
         marginTop: 20,
+    },
+    buttonRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        position: "absolute",
+        top: screen.height * 0.05,
+        zIndex: 10,  // Ensure this is above the modal content
+        width: "100%",
+        paddingHorizontal: 20,
+    },
+    logoutButton: {
+        padding: 10,
+        backgroundColor: "transparent",
     },
 });

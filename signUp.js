@@ -164,7 +164,6 @@ const styles = StyleSheet.create({
     embellishment: {
         resizeMode:"cover",
         width: screenWidth,
-        height: screenHeight * .15,
         overflow: "hidden",
         position: 'absolute',
         bottom: 0,

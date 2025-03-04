@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 
-import {query, where, getDocs, addDoc, collection, doc, getDoc, updateDoc} from "firebase/firestore";
+import {query, where, getDocs, addDoc, collection, doc, getDoc, updateDoc, arrayUnion} from "firebase/firestore";
 import {
     Button,
     Image,
@@ -58,12 +58,29 @@ const createAlbum = async (userId, setAlbums, setSelectedAlbum, albumName) => {
 
         setSelectedAlbum(newAlbumRef.id);
         setAlbums(prevAlbums => [...prevAlbums, { id: newAlbumRef.id, name: albumName }]);
-
+        await updateAlbumList(newAlbumRef.id, userId);
     } catch (error) {
         console.error("Error creating album:", error);
         Alert.alert("Error", "Failed to create album.");
     }
 };
+
+const updateAlbumList = async(albumId, userId) =>{
+    try {
+
+        const userDocRef = doc(db, "users", userId);
+
+        //update receivers friend list
+        await updateDoc(userDocRef, {
+            albums: arrayUnion(albumId)
+        });
+    } catch (error) {
+        console.error("Error creating album:", error);
+        Alert.alert("Error", "Failed to add album to users list.");
+    }
+
+}
+
 
 export const pickImages = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -193,7 +210,7 @@ export default function ImageUploader({ userId }) {
                 }));
 
                 setAlbums(fetchedAlbums);
-                numAlbums = fetchedAlbums.length;
+
                 console.log("Albums after setState:", albums);
 
                 // Automatically select the first album if none is selected

@@ -21,11 +21,8 @@ export default function HomeScreen({ setMode, handleLogout }) {
                 </TouchableOpacity>
             </View>
 
-            {/* Logout Button */}
-            <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-                <Text style={styles.logoutText}>Logout</Text>
-            </TouchableOpacity>
-            <Image source={embellishment} style={styles.embellishment} />
+
+
         </View>
     );
 }

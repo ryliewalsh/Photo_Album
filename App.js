@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import {View, Text, TouchableOpacity, StyleSheet, Dimensions} from "react-native";
+import {View, Text, TouchableOpacity, StyleSheet, Dimensions, Image} from "react-native";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import AuthScreen from "./signUp";
 import ImageUploader from "./imageUpload";
@@ -7,6 +7,8 @@ import ImageCarousel from "./galleryView";
 import HomeScreen from "./landingPage";
 import Header from "./header";
 import ShareScreen from "./share";
+import Footer from "./footer";
+import embellishment from "./assets/FrameEmbellishment.png";
 
 export default function App() {
     const [user, setUser] = useState(null);
@@ -19,6 +21,10 @@ export default function App() {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
             setLoading(false);
+
+            if(currentUser) {
+                setMode("home");
+            }
         });
 
         return () => unsubscribe();
@@ -44,23 +50,16 @@ export default function App() {
 
     return (
         <View style={styles.container}>
-            {mode !== "home" || mode !== "share" && (
-                <View>
-                    <Header user={user} onLogout={handleLogout} setMode={setMode} mode={mode} />
-                </View>
-            )}
+
 
             {mode === "home" && <HomeScreen setMode={setMode} handleLogout={handleLogout} />}
-            {mode === "view" && <ImageCarousel userId={user?.uid} />}
+            {mode === "view" && <ImageCarousel userId={user?.uid} setMode={setMode} />}
             {mode === "upload" && <ImageUploader userId={user?.uid} />}
             {mode === "share" && <ShareScreen userId={user?.uid} handleLogout={handleLogout} />}
 
-            {mode !== "home" && (
 
-                <TouchableOpacity onPress={() => setMode("home")} style={styles.backButton}>
-                    <Text style={styles.backText}>Back to Home</Text>
-                </TouchableOpacity>
-            )}
+            <Footer setMode={setMode} userId={user?.uid} mode={mode} handleLogout={handleLogout} />
+
         </View>
     );
 }
@@ -79,9 +78,9 @@ const styles = StyleSheet.create({
         fontSize: 16,
     },
     embellishment: {
+        color: "blue",
         resizeMode:"cover",
         width: screenWidth,
-        height: screenHeight * .15,
         overflow: "hidden",
         position: 'absolute',
         bottom: 0,
